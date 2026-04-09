@@ -25,12 +25,8 @@ public class AuthController {
     //로그인 요청
     @PostMapping("/login")
     public String login(@RequestBody SignupRequest request) {
-        boolean isSuccess = authService.login(request);
-
-        if (isSuccess) {
-            return "ok";
-        } else {
-            return "fail";
-        }
+        String result = authService.loginAndRole(request);
+        // 반환값: "admin" | "ok" | "fail"
+        return result;
     }
 }

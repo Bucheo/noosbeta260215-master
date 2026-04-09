@@ -8,6 +8,7 @@ const App = lazy(() => import("./App.jsx"));
 const AboutUs = lazy(() => import("./components/sections/AboutUs.jsx"));
 const SolarExplorer = lazy(() => import("./components/features/solar/SolarExplorer.jsx"));
 const SpaceTravel = lazy(() => import("./components/features/solar/SpaceTravel.jsx"));
+const AdminPage = lazy(() => import("./components/features/auth/AdminPage.jsx"));
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -37,6 +38,14 @@ root.render(
               <App />
             </LazyRoute>
           )}
+        />
+        <Route 
+          path="/admin" 
+          element={(
+            <LazyRoute>
+              <AdminPage />
+            </LazyRoute>
+          )} 
         />
         <Route
           path="/about"

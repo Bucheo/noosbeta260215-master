@@ -34,4 +34,28 @@ public class AuthService {
 
         return passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
     }
+
+    // 관리자 여부를 포함한 로그인 결과 반환
+    // - returns "admin" when credentials valid and loginId equals 'admin'
+    // - returns "ok" when credentials valid for regular user
+    // - returns "fail" when credentials invalid
+    public String loginAndRole(SignupRequest request) {
+        User user = authMapper.findLocalUserByLoginId(request.getLoginId());
+        if (user == null || user.getPasswordHash() == null) {
+            return "fail";
+        }
+
+        boolean matches = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+        if (!matches) {
+            return "fail";
+        }
+
+        // 현재는 간단히 loginId가 'project@naver.com'인 계정을 관리자 처리합니다.
+        // 향후에는 users 테이블에 role 컬럼을 추가하는 것이 더 권장됩니다.
+        if ("project@naver.com".equalsIgnoreCase(user.getLoginId())) {
+            return "admin";
+        }
+
+        return "ok";
+    }
 }

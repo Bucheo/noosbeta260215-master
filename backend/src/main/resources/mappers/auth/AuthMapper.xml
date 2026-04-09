@@ -63,7 +63,6 @@
 
     <!-- 기존 소셜 로그인 계정 조회 -->
     <select id="findByProviderInfo" resultType="com.noos.backend.auth.dto.User">
-    
         SELECT
             user_id AS userId,
             login_id AS loginId,

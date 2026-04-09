@@ -16,8 +16,7 @@ import {
   createInitialStateSurveyAnswers,
 } from '../../../lib/stateSurvey';
 import { createMuseClient } from '../../../lib/muse';
-
-
+import { useNavigate } from 'react-router-dom';
 
 const SolarExplorer = lazy(() => import('../solar/SolarExplorer'));
 
@@ -231,7 +230,8 @@ const Login = ({ onBack }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showSolarExplorer, setShowSolarExplorer] = useState(false);
   const [showSolarEntryWarp, setShowSolarEntryWarp] = useState(false);
-  
+  const navigate = useNavigate();
+
   //주소창을 확인해서 로그인 성공이면 바로 기기 체크 화면으로 이동
   const [authStage, setAuthStage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -449,15 +449,19 @@ const Login = ({ onBack }) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(loginPayload),
+      body: JSON.stringify(loginPayload), // 실제로는 email과 password 상태값을 사용해야 함
       credentials: 'include', // 쿠키를 포함하여 요청 보내기 (세션 유지용)
     });
 
     //응답 결과 처리
     if (response.ok) {
-      const result = await response.text();
+      const result = (await response.text()).trim(); // 응답을 텍스트로 받고 양쪽 공백 제거
       
-      if (result === "ok") {
+      if(result === "admin") {
+        setIsTransitioning(false);
+        alert("관리자 계정으로 로그인되었습니다.");
+        navigate('/admin');
+      } else if (result === "ok") {
         setTimeout(() => {
           setAuthStage('device-question');
           setIsTransitioning(false);
