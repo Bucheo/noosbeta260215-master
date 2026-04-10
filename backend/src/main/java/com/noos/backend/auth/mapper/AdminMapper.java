@@ -16,4 +16,10 @@ public interface AdminMapper {
 
     //사용자 정보 수정 기능
     void updateUser(@Param("userId") Long userId, @Param("req") UpdateUserRequest req);
+
+    // 사용자 검색 기능
+    List<User> searchUsers(@Param("type") String type,
+                           @Param("keyword") String keyword,
+                           @Param("startDate") String startDate,
+                           @Param("endDate") String endDate);
 }

@@ -55,7 +55,7 @@ public class AuthService {
             return "fail";
         }
 
-        // 현재는 간단히 loginId가 'project@gmail.com'인 계정을 관리자 처리합니다.
+        // 현재는 간단히 loginId가 'atfqwe80@gmail.com'인 계정을 관리자 처리합니다.
         // 향후에는 users 테이블에 role 컬럼을 추가하는 것이 더 권장됩니다.
         String role;
         if ("atfqwe80@gmail.com".equalsIgnoreCase(user.getLoginId())) {

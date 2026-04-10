@@ -30,4 +30,36 @@
         WHERE user_id = #{userId}
     </update>
 
+    <select id="searchUsers" resultType="com.noos.backend.auth.dto.User">
+        SELECT
+            user_id AS userId,
+            login_id AS loginId,
+            password_hash AS passwordHash,
+            display_name AS displayName,
+            `role` AS role,
+            created_at AS createdAt
+        FROM users
+        <where>
+            <if test="keyword != null and keyword != ''">
+                <choose>
+                    <when test="type == 'loginId'">
+                        login_id LIKE CONCAT('%', #{keyword}, '%')
+                    </when>
+                    <when test="type == 'displayName'">
+                        display_name LIKE CONCAT('%', #{keyword}, '%')
+                    </when>
+                    <when test="type == 'role'">
+                        `role` LIKE CONCAT('%', #{keyword}, '%')
+                    </when>
+                </choose>
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND created_at &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+            </if>
+        </where>
+    </select>
+
 </mapper>

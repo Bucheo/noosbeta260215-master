@@ -66,4 +66,20 @@ public class AdminController {
             return ResponseEntity.status(500).body("에러: " + e.getMessage());
         }
     }
+
+    // 검색 기능
+    @GetMapping("/search/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<User>> searchUsers(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<User> users = adminMapper.searchUsers(
+                type != null ? type : "",
+                keyword != null ? keyword : "",
+                startDate != null ? startDate : "",
+                endDate != null ? endDate : "");
+        return ResponseEntity.ok(users);
+    }
 }

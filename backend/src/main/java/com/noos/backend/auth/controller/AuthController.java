@@ -17,12 +17,6 @@ public class AuthController {
     }
 
     // 회원가입 요청
-    /*@PostMapping("/signup")
-    public String signup(@RequestBody SignupRequest request) {
-        authService.signup(request);
-        return "ok";
-    }*/
-
     @PostMapping("/signup")
     public String signup(@RequestBody SignupRequest request) {
         try {

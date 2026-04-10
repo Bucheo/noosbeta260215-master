@@ -14,7 +14,7 @@
             display_name,
             provider,
             created_at,
-            'role'
+            `role`
         )
         VALUES
         (
@@ -22,7 +22,7 @@
             #{passwordHash},
             #{displayName},
             'local',
-            NOW()
+            NOW(),
             'USER'
         )
     </insert>
@@ -37,8 +37,8 @@
             provider AS provider,
             provider_id AS providerId,
             created_at AS createdAt,
-            updated_at AS updatedAt
-            'role' AS role
+            updated_at AS updatedAt,
+            `role` AS role
         FROM users
         WHERE login_id = #{loginId}
           AND provider = 'local'

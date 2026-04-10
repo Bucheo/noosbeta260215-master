@@ -11,6 +11,47 @@ const AdminPage = () => {
     password: "",
     role: "",
   });
+
+  const [searchType, setSearchType] = useState("loginId");
+  const [keyword, setKeyword] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // 검색 함수
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (keyword) {
+      params.append("type", searchType);
+      params.append("keyword", keyword);
+    }
+    if (startDate) params.append("startDate", startDate);
+    if (endDate) params.append("endDate", endDate);
+
+    fetch(`http://localhost:8080/api/admin/search/users?${params}`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setUsers(data);
+      })
+      .catch((err) => alert(err.message));
+  };
+
+  // 초기화 함수
+  const handleReset = () => {
+    setSearchType("loginId");
+    setKeyword("");
+    setStartDate("");
+    setEndDate("");
+    // 전체 목록 다시 불러오기
+    fetch("http://localhost:8080/api/admin/users", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setUsers(data);
+      });
+  };
+
+  // 삭제 기능
   const handleDelete = (userId, displayName) => {
     if (window.confirm(`정말 "${displayName}" 회원을 삭제하시겠습니까?`)) {
       fetch(`http://localhost:8080/api/admin/users/${userId}`, {
@@ -27,6 +68,7 @@ const AdminPage = () => {
     }
   };
 
+  // 수정 폼 열기
   const handleEditOpen = (user) => {
     setEditUser(user);
     setEditForm({
@@ -36,6 +78,7 @@ const AdminPage = () => {
     });
   };
 
+  // 수정 저장 기능
   const handleEditSave = () => {
     fetch(`http://localhost:8080/api/admin/users/${editUser.userId}`, {
       method: "PUT",
@@ -121,7 +164,111 @@ const AdminPage = () => {
       >
         🛡️ 관리자 페이지 - 회원 관리
       </h2>
+<div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginBottom: "20px",
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        {/* 검색 조건 드롭다운 */}
+        <select
+          value={searchType}
+          onChange={(e) => setSearchType(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            backgroundColor: "#333",
+            border: "1px solid #555",
+            borderRadius: "4px",
+            color: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          <option value="loginId">아이디</option>
+          <option value="displayName">이름</option>
+          <option value="role">권한</option>
+        </select>
 
+        {/* 검색어 입력 */}
+        <input
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          placeholder="검색어 입력 후 Enter"
+          style={{
+            padding: "8px 12px",
+            backgroundColor: "#333",
+            border: "1px solid #555",
+            borderRadius: "4px",
+            color: "#fff",
+            width: "200px",
+          }}
+        />
+
+        {/* 날짜 범위 */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ color: "#aaa", fontSize: "13px" }}>생성일</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{
+              padding: "7px",
+              backgroundColor: "#333",
+              border: "1px solid #555",
+              borderRadius: "4px",
+              color: "#fff",
+              colorScheme: "dark",
+            }}
+          />
+          <span style={{ color: "#aaa" }}>~</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{
+              padding: "7px",
+              backgroundColor: "#333",
+              border: "1px solid #555",
+              borderRadius: "4px",
+              color: "#fff",
+              colorScheme: "dark",
+            }}
+          />
+        </div>
+
+        {/* 검색 버튼 */}
+        <button
+          onClick={handleSearch}
+          style={{
+            padding: "8px 18px",
+            backgroundColor: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          검색
+        </button>
+
+        {/* 초기화 버튼 */}
+        <button
+          onClick={handleReset}
+          style={{
+            padding: "8px 18px",
+            backgroundColor: "#555",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          초기화
+        </button>
+      </div>
       <table
         style={{
           width: "100%",
