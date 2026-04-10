@@ -58,6 +58,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         authMapper.saveOrUpdateOAuthUser(user);
 
-        return oAuth2User;
+        return new CustomOAuth2User(oAuth2User, email);
     }
 }

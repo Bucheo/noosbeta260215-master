@@ -3,9 +3,14 @@ package com.noos.backend.auth.service;
 import com.noos.backend.auth.dto.SignupRequest;
 import com.noos.backend.auth.dto.User;
 import com.noos.backend.auth.mapper.AuthMapper;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Collections;
 
 @Service
 public class AuthService {
@@ -50,12 +55,23 @@ public class AuthService {
             return "fail";
         }
 
-        // 현재는 간단히 loginId가 'project@naver.com'인 계정을 관리자 처리합니다.
+        // 현재는 간단히 loginId가 'project@gmail.com'인 계정을 관리자 처리합니다.
         // 향후에는 users 테이블에 role 컬럼을 추가하는 것이 더 권장됩니다.
-        if ("project@naver.com".equalsIgnoreCase(user.getLoginId())) {
-            return "admin";
+        String role;
+        if ("atfqwe80@gmail.com".equalsIgnoreCase(user.getLoginId())) {
+            role = "admin";
+        } else {
+            role = "ok";
         }
 
-        return "ok";
+        // Spring Security 인증 설정
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+            user.getLoginId(),
+            null,
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + (role.equals("admin") ? "ADMIN" : "USER")))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        return role;
     }
 }

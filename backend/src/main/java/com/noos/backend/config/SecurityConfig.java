@@ -6,6 +6,7 @@ import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,6 +18,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @SuppressWarnings("unused")
@@ -26,23 +28,38 @@ public class SecurityConfig {
         this.customOAuth2UserService = customOAuth2UserService;
     }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable()) // API 방식이므로 비활성화
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 연결
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable())
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/login.**", "/oauth2/**").permitAll() // 로그인/회원가입 경로 허용
-                        .anyRequest().authenticated())
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/auth/**", "/login/**", "/signup/**", "/oauth2/**").permitAll()
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+            .anyRequest().authenticated())
 
-                // ⭐ 핵심: 스프링 시큐리티의 기본 로그인 폼과 HTTP Basic 인증을 꺼야 합니다.
-                // 이걸 안 끄면 자꾸 브라우저를 /login으로 리다이렉트 시킵니다.
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable());
+        .formLogin(form -> form.disable())
+        .httpBasic(basic -> basic.disable())  // ← 세미콜론 제거!
 
-        return http.build();
-    }
+        .oauth2Login(oauth2 -> oauth2
+            .userInfoEndpoint(userInfo -> userInfo
+                .userService(customOAuth2UserService)
+            )
+            .successHandler((request, response, authentication) -> {
+                boolean isAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                if (isAdmin) {
+                    response.sendRedirect("http://localhost:3000/admin");
+                } else {
+                    response.sendRedirect("http://localhost:3000");
+                }
+            })
+            .failureUrl("/login?error=true")
+        ); 
+
+    return http.build();
+}
 
     // 로컬 로그인 비밀번호 해시/검증에 사용할 인코더
     @Bean

@@ -1,34 +1,42 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Apple, Chrome, Github } from 'lucide-react';
-import Grainient from '../../ui/effects/Grainient';
-import Stepper, { Step } from './Stepper';
-import BackButton from '../../ui/buttons/BackButton';
-import StateSurveyPage from './StateSurveyPage';
-import StateSurveyResultPage from './StateSurveyResultPage';
-import MuseSignalDashboard from './MuseSignalDashboard';
+import React, {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import styled from "styled-components";
+import { motion, AnimatePresence } from "framer-motion";
+import { Apple, Chrome, Github } from "lucide-react";
+import Grainient from "../../ui/effects/Grainient";
+import Stepper, { Step } from "./Stepper";
+import BackButton from "../../ui/buttons/BackButton";
+import StateSurveyPage from "./StateSurveyPage";
+import StateSurveyResultPage from "./StateSurveyResultPage";
+import MuseSignalDashboard from "./MuseSignalDashboard";
 import {
   STATE_SURVEY_SECTIONS,
   STATE_SURVEY_TOTAL_ITEMS,
   buildStateSurveyAnalysis,
   countAnsweredStateSurvey,
   createInitialStateSurveyAnswers,
-} from '../../../lib/stateSurvey';
-import { createMuseClient } from '../../../lib/muse';
-import { useNavigate } from 'react-router-dom';
+} from "../../../lib/stateSurvey";
+import { createMuseClient } from "../../../lib/muse";
+import { useNavigate } from "react-router-dom";
 
-const SolarExplorer = lazy(() => import('../solar/SolarExplorer'));
+const SolarExplorer = lazy(() => import("../solar/SolarExplorer"));
 
 const RESULT_NEXT_STEP_MESSAGE =
-  '원하시는 집중이나 감정상태를 행성을 선택하여 보다 나은 환경을 만들어보세요.';
-const CURRENT_STATE_STORAGE_KEY = 'noos_current_state';
+  "원하시는 집중이나 감정상태를 행성을 선택하여 보다 나은 환경을 만들어보세요.";
+const CURRENT_STATE_STORAGE_KEY = "noos_current_state";
 const DEVICE_CONNECTION_RESULT = {
-  title: 'Muse S Athena 연결 완료',
-  summary: '디바이스 연결 및 신호 확인이 완료되었습니다. Solar Explorer 진입 준비가 끝났습니다.',
+  title: "Muse S Athena 연결 완료",
+  summary:
+    "디바이스 연결 및 신호 확인이 완료되었습니다. Solar Explorer 진입 준비가 끝났습니다.",
 };
 const SURVEY_METHOD_NOTE =
-  '본 결과는 K-PANAS/KSS/PSS-4 기반의 비의료적 상태 스크리닝입니다.';
+  "본 결과는 K-PANAS/KSS/PSS-4 기반의 비의료적 상태 스크리닝입니다.";
 const AUTH_TO_WARP_FADE_DURATION_SEC = 1.95;
 const DEVICE_NO_TO_SURVEY_FADE_OUT_MS = 760;
 const DEVICE_CONNECTING_STAGE_DURATION_MS = 1400;
@@ -47,9 +55,12 @@ const EEG_UI_FLUSH_INTERVAL_MS = 50;
 const NOOP_PLANET_SELECT = () => {};
 const saveCurrentStateSnapshot = (payload) => {
   try {
-    window.localStorage.setItem(CURRENT_STATE_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(
+      CURRENT_STATE_STORAGE_KEY,
+      JSON.stringify(payload),
+    );
   } catch (error) {
-    console.error('Failed to save current state snapshot:', error);
+    console.error("Failed to save current state snapshot:", error);
   }
 };
 const SURVEY_ITEMS = STATE_SURVEY_SECTIONS.flatMap((section) =>
@@ -60,7 +71,7 @@ const SURVEY_ITEMS = STATE_SURVEY_SECTIONS.flatMap((section) =>
     sectionTitle: section.title,
     sectionDescription: section.description,
     options: question.options ?? section.options,
-  }))
+  })),
 );
 
 const createWarpStars = () => {
@@ -94,41 +105,41 @@ const WARP_STARS = createWarpStars();
 const WARP_STAR_RENDER_DATA = WARP_STARS.map((star) => ({
   id: star.id,
   style: {
-    '--angle': `${star.angleDeg}deg`,
-    '--distance': `${star.distance}px`,
-    '--duration': `${star.duration}s`,
-    '--delay': `${star.delay}s`,
-    '--size': `${star.size}px`,
-    '--star-opacity': `${star.opacity}`,
+    "--angle": `${star.angleDeg}deg`,
+    "--distance": `${star.distance}px`,
+    "--duration": `${star.duration}s`,
+    "--delay": `${star.delay}s`,
+    "--size": `${star.size}px`,
+    "--star-opacity": `${star.opacity}`,
   },
 }));
 
 const ENTRY_WARP_STAR_RENDER_DATA = WARP_STARS.map((star) => ({
   id: `entry-${star.id}`,
   style: {
-    '--angle': `${star.angleDeg}deg`,
-    '--distance': `${220 + star.distance * 0.8}px`,
-    '--duration': `${0.95 + star.duration * 0.5}s`,
-    '--delay': `${star.delay * 0.2}s`,
-    '--size': `${Math.max(1, star.size * 0.95)}px`,
-    '--star-opacity': `${Math.min(1, star.opacity + 0.08)}`,
+    "--angle": `${star.angleDeg}deg`,
+    "--distance": `${220 + star.distance * 0.8}px`,
+    "--duration": `${0.95 + star.duration * 0.5}s`,
+    "--delay": `${star.delay * 0.2}s`,
+    "--size": `${Math.max(1, star.size * 0.95)}px`,
+    "--star-opacity": `${Math.min(1, star.opacity + 0.08)}`,
   },
 }));
 
 const SolarExplorerFallback = () => (
   <div
     style={{
-      width: '100%',
-      height: '100%',
-      background: '#000000',
+      width: "100%",
+      height: "100%",
+      background: "#000000",
     }}
   />
 );
 
 const LOGIN_STAGE_GRAINIENT_PROPS = Object.freeze({
-  color1: '#000000',
-  color2: '#474747',
-  color3: '#787878',
+  color1: "#000000",
+  color2: "#474747",
+  color3: "#787878",
   timeSpeed: 0.3,
   colorBalance: 0,
   warpStrength: 1,
@@ -151,20 +162,27 @@ const LOGIN_STAGE_GRAINIENT_PROPS = Object.freeze({
 });
 
 const PrismStageShell = ({ children }) => (
-  <div style={{ width: '100%', height: '100vh', position: 'relative' }}>
-    <div style={{ position: 'absolute', inset: 0 }}>
+  <div style={{ width: "100%", height: "100vh", position: "relative" }}>
+    <div style={{ position: "absolute", inset: 0 }}>
       <Grainient {...LOGIN_STAGE_GRAINIENT_PROPS} />
     </div>
-    <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>{children}</div>
+    <div
+      style={{ position: "relative", zIndex: 1, width: "100%", height: "100%" }}
+    >
+      {children}
+    </div>
   </div>
 );
 
 const WarpTransitionScene = () => {
   return (
     <WarpTransitionWrapper
-      initial={{ opacity: 0, scale: 1.016, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-      transition={{ duration: WARP_SCENE_FADE_IN_DURATION_SEC, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, scale: 1.016, filter: "blur(6px)" }}
+      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+      transition={{
+        duration: WARP_SCENE_FADE_IN_DURATION_SEC,
+        ease: [0.16, 1, 0.3, 1],
+      }}
     >
       <div className="warp-grainient" aria-hidden="true">
         <Grainient {...LOGIN_STAGE_GRAINIENT_PROPS} />
@@ -172,11 +190,7 @@ const WarpTransitionScene = () => {
 
       <div className="warp-stars" aria-hidden="true">
         {WARP_STAR_RENDER_DATA.map((star) => (
-          <span
-            key={star.id}
-            className="warp-star"
-            style={star.style}
-          />
+          <span key={star.id} className="warp-star" style={star.style} />
         ))}
       </div>
 
@@ -202,15 +216,11 @@ const SolarEntryWarpOverlay = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <div className="entry-stars" aria-hidden="true">
         {ENTRY_WARP_STAR_RENDER_DATA.map((star) => (
-          <span
-            key={star.id}
-            className="entry-star"
-            style={star.style}
-          />
+          <span key={star.id} className="entry-star" style={star.style} />
         ))}
       </div>
 
@@ -224,7 +234,6 @@ const SolarEntryWarpOverlay = () => {
   );
 };
 
-
 const Login = ({ onBack }) => {
   const [showStepper, setShowStepper] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -235,13 +244,14 @@ const Login = ({ onBack }) => {
   //주소창을 확인해서 로그인 성공이면 바로 기기 체크 화면으로 이동
   const [authStage, setAuthStage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('login') === 'success' ? 'device-question' : 'login';
+    return params.get("login") === "success" ? "device-question" : "login";
   });
 
   //뇌파 데이터
   const [eegData, setEegData] = useState([]);
   const [measuredEegData, setMeasuredEegData] = useState([]);
-  const [measurementProgressPercent, setMeasurementProgressPercent] = useState(0);
+  const [measurementProgressPercent, setMeasurementProgressPercent] =
+    useState(0);
 
   const warpExitTimerRef = useRef(null);
   const museClientRef = useRef(null);
@@ -250,24 +260,25 @@ const Login = ({ onBack }) => {
   const eegFlushTimerRef = useRef(null);
 
   //이름, 이메일 ,패스워드
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   //Next스텝
   const [activeStep, setActiveStep] = useState(1);
 
-
-  const [surveyAnswers, setSurveyAnswers] = useState(() => createInitialStateSurveyAnswers());
+  const [surveyAnswers, setSurveyAnswers] = useState(() =>
+    createInitialStateSurveyAnswers(),
+  );
   const [surveyStepIndex, setSurveyStepIndex] = useState(0);
 
   const answeredSurveyCount = useMemo(
     () => countAnsweredStateSurvey(surveyAnswers),
-    [surveyAnswers]
+    [surveyAnswers],
   );
   const isSurveyComplete = answeredSurveyCount === STATE_SURVEY_TOTAL_ITEMS;
   const surveyProgressPercent = Math.round(
-    (answeredSurveyCount / Math.max(1, STATE_SURVEY_TOTAL_ITEMS)) * 100
+    (answeredSurveyCount / Math.max(1, STATE_SURVEY_TOTAL_ITEMS)) * 100,
   );
   const currentSurveyItem = SURVEY_ITEMS[surveyStepIndex];
   const isLastSurveyStep = surveyStepIndex === SURVEY_ITEMS.length - 1;
@@ -280,11 +291,11 @@ const Login = ({ onBack }) => {
 
   const surveyResult = useMemo(
     () => buildStateSurveyAnalysis(surveyAnswers),
-    [surveyAnswers]
+    [surveyAnswers],
   );
   const authStageFadeDurationSec = useMemo(() => {
     if (isTransitioning) return AUTH_TO_WARP_FADE_DURATION_SEC;
-    if (authStage === 'device-complete' || authStage === 'analysis-loading') {
+    if (authStage === "device-complete" || authStage === "analysis-loading") {
       return RESULT_PRE_STAGE_FADE_OUT_DURATION_SEC;
     }
     return 0.5;
@@ -293,10 +304,14 @@ const Login = ({ onBack }) => {
   //소셜 로그인 성공 로직 추가
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('login') === 'success') {
+    if (params.get("login") === "success") {
       // 0.1초 뒤에 주소창을 깨끗하게 정리 (localhost:3000 으로 만듦)
       const timeoutId = setTimeout(() => {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
       }, 100);
       return () => clearTimeout(timeoutId);
     }
@@ -306,16 +321,16 @@ const Login = ({ onBack }) => {
     const timeoutIds = [];
     let measurementProgressTimerId = null;
 
-    if (authStage === 'device-connecting') {
+    if (authStage === "device-connecting") {
       timeoutIds.push(
         setTimeout(() => {
           setMeasurementProgressPercent(0);
-          setAuthStage('device-complete');
-        }, DEVICE_CONNECTING_STAGE_DURATION_MS)
+          setAuthStage("device-complete");
+        }, DEVICE_CONNECTING_STAGE_DURATION_MS),
       );
     }
 
-    if (authStage === 'device-complete') {
+    if (authStage === "device-complete") {
       const measurementStartedAt = Date.now();
 
       setMeasurementProgressPercent(0);
@@ -323,7 +338,7 @@ const Login = ({ onBack }) => {
         const elapsedMs = Date.now() - measurementStartedAt;
         const nextProgress = Math.min(
           100,
-          Math.round((elapsedMs / DEVICE_MEASUREMENT_STAGE_DURATION_MS) * 100)
+          Math.round((elapsedMs / DEVICE_MEASUREMENT_STAGE_DURATION_MS) * 100),
         );
         setMeasurementProgressPercent(nextProgress);
       }, 100);
@@ -342,19 +357,22 @@ const Login = ({ onBack }) => {
           museClientRef.current = null;
 
           Promise.resolve(disconnectPromise).catch((error) => {
-            console.error('Failed to disconnect Muse client after measurement:', error);
+            console.error(
+              "Failed to disconnect Muse client after measurement:",
+              error,
+            );
           });
 
-          setAuthStage('device-success');
-        }, DEVICE_MEASUREMENT_STAGE_DURATION_MS)
+          setAuthStage("device-success");
+        }, DEVICE_MEASUREMENT_STAGE_DURATION_MS),
       );
     }
 
-    if (authStage === 'analysis-loading') {
-      timeoutIds.push(setTimeout(() => setAuthStage('analysis-result'), 2600));
+    if (authStage === "analysis-loading") {
+      timeoutIds.push(setTimeout(() => setAuthStage("analysis-result"), 2600));
     }
 
-    if (authStage === 'warp-transition') {
+    if (authStage === "warp-transition") {
       timeoutIds.push(setTimeout(() => setShowSolarExplorer(true), 4300));
     }
 
@@ -400,20 +418,31 @@ const Login = ({ onBack }) => {
     setShowStepper(true);
   };
 
-  const handleStepperComplete = async() => {
-    
-    await fetch("http://localhost:8080/api/auth/signup", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      credentials: 'include',
-      loginId: email,
-      password: password,
-      displayName: name
-    })
-  });
+  const handleStepperComplete = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // ← body 밖으로 꺼내기
+        body: JSON.stringify({
+          loginId: email,
+          password: password,
+          displayName: name,
+        }),
+      });
+
+      if (response.ok) {
+        alert("회원가입이 완료되었습니다!");
+      } else {
+        const msg = await response.text();
+        alert("회원가입 실패: " + msg);
+      }
+    } catch (error) {
+      console.error("회원가입 에러:", error);
+      alert("서버와 연결할 수 없습니다.");
+    }
 
     setIsTransitioning(true);
     setTimeout(() => {
@@ -424,65 +453,69 @@ const Login = ({ onBack }) => {
 
   // 백엔드의 구글 OAuth2 기본 진입점으로 리다이렉트
   const handleGoogleLogin = () => {
-  window.location.href = 'http://localhost:8080/oauth2/authorization/google'; };
-  
-  //깃허브
-  const handleGithubLogin = () => {
-  window.location.href = 'http://localhost:8080/oauth2/authorization/github'; };
-  
-  //로그인 클릭 시 백엔드 요청 POST
-  const handleLoginClick = async (e) => {
-  e.preventDefault(); // 폼 제출 시 페이지 새로고침 방지
-  
-  // 백엔드 <-> 프론트 구조 일치
-  const loginPayload = {
-    loginId: email,    // 사용자가 입력한 email 상태값
-    password: password // 사용자가 입력한 password 상태값
+    window.location.href = "http://localhost:8080/oauth2/authorization/google";
   };
 
-  try {
-    setIsTransitioning(true);
+  //깃허브
+  const handleGithubLogin = () => {
+    window.location.href = "http://localhost:8080/oauth2/authorization/github";
+  };
 
-    //백엔드로 로그인 요청 전송
-    const response = await fetch("http://localhost:8080/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(loginPayload), // 실제로는 email과 password 상태값을 사용해야 함
-      credentials: 'include', // 쿠키를 포함하여 요청 보내기 (세션 유지용)
-    });
+  //로그인 클릭 시 백엔드 요청 POST
+  const handleLoginClick = async (e) => {
+    e.preventDefault(); // 폼 제출 시 페이지 새로고침 방지
 
-    //응답 결과 처리
-    if (response.ok) {
-      const result = (await response.text()).trim(); // 응답을 텍스트로 받고 양쪽 공백 제거
-      
-      if(result === "admin") {
-        setIsTransitioning(false);
-        alert("관리자 계정으로 로그인되었습니다.");
-        navigate('/admin');
-      } else if (result === "ok") {
-        setTimeout(() => {
-          setAuthStage('device-question');
+    // 백엔드 <-> 프론트 구조 일치
+    const loginPayload = {
+      loginId: email, // 사용자가 입력한 email 상태값
+      password: password, // 사용자가 입력한 password 상태값
+    };
+
+    try {
+      setIsTransitioning(true);
+
+      //백엔드로 로그인 요청 전송
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginPayload), // 실제로는 email과 password 상태값을 사용해야 함
+        credentials: "include", // 쿠키를 포함하여 요청 보내기 (세션 유지용)
+      });
+
+      //응답 결과 처리
+      if (response.ok) {
+        const result = (await response.text()).trim(); // 응답을 텍스트로 받고 양쪽 공백 제거
+
+        if (result === "admin") {
           setIsTransitioning(false);
-          alert("로그인 성공! 기기 연결 여부를 선택하는 화면으로 이동합니다.");
-        }, 500);
+          alert("관리자 계정으로 로그인되었습니다.");
+          navigate("/admin");
+        } else if (result === "ok") {
+          setTimeout(() => {
+            setAuthStage("device-question");
+            setIsTransitioning(false);
+            alert(
+              "로그인 성공! 기기 연결 여부를 선택하는 화면으로 이동합니다.",
+            );
+          }, 500);
+        } else {
+          setIsTransitioning(false);
+          alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
       } else {
         setIsTransitioning(false);
-        alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+        alert("로그인 요청 중 서버 에러가 발생했습니다.");
       }
-    } else {
+    } catch (error) {
       setIsTransitioning(false);
-      alert("로그인 요청 중 서버 에러가 발생했습니다.");
+      console.error("통신 에러:", error);
+      alert("서버와 연결할 수 없습니다.");
     }
-  } catch (error) {
-    setIsTransitioning(false);
-    console.error("통신 에러:", error);
-    alert("서버와 연결할 수 없습니다.");
-  }
-};
+  };
 
-//Muse기기 유무 확인
+  //Muse기기 유무 확인
   const scheduleEegFlush = () => {
     if (eegFlushTimerRef.current) return;
 
@@ -508,22 +541,22 @@ const Login = ({ onBack }) => {
     }
   };
 
-  const handleMuseChoice = async(choice) => {
+  const handleMuseChoice = async (choice) => {
     if (isTransitioning) return;
 
-    if (choice === 'yes') {
-      setAuthStage('device-connecting');
+    if (choice === "yes") {
+      setAuthStage("device-connecting");
       resetMuseStream();
 
       try {
         //가짜 기기 생성 및 시작
         const client = await createMuseClient({
-          mode: 'mock',
+          mode: "mock",
         });
         museClientRef.current = client;
-        
+
         //실제 블루투스 팝업 대기 느낌을 위해 약간의 딜레이
-        
+
         await client.connect();
         await client.start();
 
@@ -533,30 +566,30 @@ const Login = ({ onBack }) => {
           eegBufferRef.current.push(reading);
 
           if (eegBufferRef.current.length > MAX_EEG_BUFFER_SIZE) {
-            eegBufferRef.current.splice(0, eegBufferRef.current.length - MAX_EEG_BUFFER_SIZE);
+            eegBufferRef.current.splice(
+              0,
+              eegBufferRef.current.length - MAX_EEG_BUFFER_SIZE,
+            );
           }
 
           scheduleEegFlush();
           console.log("EEG Stream (Mock):", reading.samples);
         });
-        
 
         console.log("Muse S Athena Simulator 활성화 완료");
-
       } catch (error) {
         console.error("기기 시뮬레이션 오류:", error);
         resetMuseStream();
-        setAuthStage('device-question');
+        setAuthStage("device-question");
       }
       return;
     }
-
 
     setIsTransitioning(true);
     window.setTimeout(() => {
       setSurveyAnswers(createInitialStateSurveyAnswers());
       setSurveyStepIndex(0);
-      setAuthStage('survey');
+      setAuthStage("survey");
       setIsTransitioning(false);
     }, DEVICE_NO_TO_SURVEY_FADE_OUT_MS);
   };
@@ -571,11 +604,11 @@ const Login = ({ onBack }) => {
   const handleSurveySubmit = (e) => {
     e.preventDefault();
     if (!isSurveyComplete) return;
-    setAuthStage('analysis-loading');
+    setAuthStage("analysis-loading");
   };
 
   const handleSurveyStepMove = (direction) => {
-    if (direction === 'prev') {
+    if (direction === "prev") {
       setSurveyStepIndex((prev) => Math.max(0, prev - 1));
       return;
     }
@@ -588,40 +621,42 @@ const Login = ({ onBack }) => {
 
     if (surveyStepIndex < SURVEY_ITEMS.length - 1) {
       window.setTimeout(() => {
-        setSurveyStepIndex((prev) => Math.min(SURVEY_ITEMS.length - 1, prev + 1));
+        setSurveyStepIndex((prev) =>
+          Math.min(SURVEY_ITEMS.length - 1, prev + 1),
+        );
       }, 90);
     }
   };
 
   const handleContinueToSolarExplorer = () => {
     const now = new Date().toISOString();
-    if (authStage === 'analysis-result') {
+    if (authStage === "analysis-result") {
       saveCurrentStateSnapshot({
-        source: 'survey',
-        sourceLabel: '설문 기반 측정',
-        title: surveyResult?.title || '상태 분석 결과',
-        summary: surveyResult?.summary || '',
-        conclusion: surveyResult?.conclusion || '',
+        source: "survey",
+        sourceLabel: "설문 기반 측정",
+        title: surveyResult?.title || "상태 분석 결과",
+        summary: surveyResult?.summary || "",
+        conclusion: surveyResult?.conclusion || "",
         dimensions: surveyResult?.dimensions || [],
         keyIndicators: surveyResult?.keyIndicators || [],
         measuredAt: now,
       });
-      } else if (authStage === 'device-success') {
-        saveCurrentStateSnapshot({
-          source: 'muse',
-          sourceLabel: 'Muse S Athena 측정',
-          title: DEVICE_CONNECTION_RESULT.title,
-          summary: DEVICE_CONNECTION_RESULT.summary,
-          measuredAt: now,
-        });
-      }
+    } else if (authStage === "device-success") {
+      saveCurrentStateSnapshot({
+        source: "muse",
+        sourceLabel: "Muse S Athena 측정",
+        title: DEVICE_CONNECTION_RESULT.title,
+        summary: DEVICE_CONNECTION_RESULT.summary,
+        measuredAt: now,
+      });
+    }
 
     setIsTransitioning(true);
     if (warpExitTimerRef.current) {
       clearTimeout(warpExitTimerRef.current);
     }
     warpExitTimerRef.current = setTimeout(() => {
-      setAuthStage('warp-transition');
+      setAuthStage("warp-transition");
       warpExitTimerRef.current = null;
     }, WARP_EXIT_FADE_DURATION_MS);
   };
@@ -629,11 +664,19 @@ const Login = ({ onBack }) => {
   if (showSolarExplorer) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 1.02, y: 14, filter: 'blur(6px)' }}
-        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+        initial={{ opacity: 0, scale: 1.02, y: 14, filter: "blur(6px)" }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
         exit={{ opacity: 0, scale: 0.99 }}
-        transition={{ duration: SOLAR_ENTRY_FADE_IN_DURATION_SEC, ease: [0.16, 1, 0.3, 1] }}
-        style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden' }}
+        transition={{
+          duration: SOLAR_ENTRY_FADE_IN_DURATION_SEC,
+          ease: [0.16, 1, 0.3, 1],
+        }}
+        style={{
+          width: "100%",
+          height: "100vh",
+          position: "relative",
+          overflow: "hidden",
+        }}
       >
         <Suspense fallback={<SolarExplorerFallback />}>
           <SolarExplorer onPlanetSelect={NOOP_PLANET_SELECT} />
@@ -645,18 +688,18 @@ const Login = ({ onBack }) => {
     );
   }
 
-  if (authStage === 'warp-transition') {
+  if (authStage === "warp-transition") {
     return <WarpTransitionScene />;
   }
 
-  if (authStage === 'survey' && currentSurveyItem) {
+  if (authStage === "survey" && currentSurveyItem) {
     return (
       <PrismStageShell>
         <motion.div
-          initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
-          style={{ position: 'absolute', inset: 0 }}
+          style={{ position: "absolute", inset: 0 }}
         >
           <StateSurveyPage
             currentSurveyItem={currentSurveyItem}
@@ -670,8 +713,8 @@ const Login = ({ onBack }) => {
             isSurveyComplete={isSurveyComplete}
             surveyMethodNote={SURVEY_METHOD_NOTE}
             onSurveyOptionSelect={handleSurveyOptionSelect}
-            onPrev={() => handleSurveyStepMove('prev')}
-            onNext={() => handleSurveyStepMove('next')}
+            onPrev={() => handleSurveyStepMove("prev")}
+            onNext={() => handleSurveyStepMove("next")}
             onSubmit={handleSurveySubmit}
           />
         </motion.div>
@@ -679,14 +722,17 @@ const Login = ({ onBack }) => {
     );
   }
 
-  if (authStage === 'analysis-result') {
+  if (authStage === "analysis-result") {
     return (
       <PrismStageShell>
         <motion.div
-          initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: DEVICE_SUCCESS_FADE_IN_DURATION_SEC, ease: [0.16, 1, 0.3, 1] }}
-          style={{ position: 'absolute', inset: 0 }}
+          initial={{ opacity: 0, y: 24, filter: "blur(12px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{
+            duration: DEVICE_SUCCESS_FADE_IN_DURATION_SEC,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          style={{ position: "absolute", inset: 0 }}
         >
           <StateSurveyResultPage
             surveyResult={surveyResult}
@@ -699,14 +745,17 @@ const Login = ({ onBack }) => {
     );
   }
 
-  if (authStage === 'device-success') {
+  if (authStage === "device-success") {
     return (
       <PrismStageShell>
         <motion.div
-          initial={{ opacity: 0, y: 24, filter: 'blur(12px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: DEVICE_SUCCESS_FADE_IN_DURATION_SEC, ease: [0.16, 1, 0.3, 1] }}
-          style={{ position: 'absolute', inset: 0 }}
+          initial={{ opacity: 0, y: 24, filter: "blur(12px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{
+            duration: DEVICE_SUCCESS_FADE_IN_DURATION_SEC,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          style={{ position: "absolute", inset: 0 }}
         >
           <MuseSignalDashboard
             eegData={resultEegData}
@@ -742,7 +791,11 @@ const Login = ({ onBack }) => {
             <motion.div
               key="stepper"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: isTransitioning ? 0 : 1, scale: isTransitioning ? 0.95 : 1, y: isTransitioning ? 20 : 0 }}
+              animate={{
+                opacity: isTransitioning ? 0 : 1,
+                scale: isTransitioning ? 0.95 : 1,
+                y: isTransitioning ? 20 : 0,
+              }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
             >
@@ -752,13 +805,12 @@ const Login = ({ onBack }) => {
                   onFinalStepCompleted={handleStepperComplete}
                   backButtonText="Previous"
                   nextButtonText="Next"
-
                   onStepChange={(newStep) => setActiveStep(newStep)}
                   disableStepIndicators={true}
                   nextButtonProps={{
-                    disabled: 
+                    disabled:
                       (activeStep === 2 && !name.trim()) || // 1단계: 이름이 비어있으면 막음
-                      (activeStep === 3 && (!email.trim() || !password.trim())) // 2단계: 이메일이나 비번이 비어있으면 막음
+                      (activeStep === 3 && (!email.trim() || !password.trim())), // 2단계: 이메일이나 비번이 비어있으면 막음
                   }}
                 >
                   <Step>
@@ -768,53 +820,53 @@ const Login = ({ onBack }) => {
                   <Step>
                     <h2>Personal Information</h2>
                     <input
-                     //회원가입->(이름입력)
+                      //회원가입->(이름입력)
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your full name"
                       style={{
-                        width: '100%',
-                        padding: '10px',
-                        margin: '10px 0',
-                        borderRadius: '5px',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        color: '#fff'
+                        width: "100%",
+                        padding: "10px",
+                        margin: "10px 0",
+                        borderRadius: "5px",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                        background: "rgba(255, 255, 255, 0.06)",
+                        color: "#fff",
                       }}
                     />
                   </Step>
                   <Step>
                     <h2>Account Details</h2>
                     <input
-                    //회원가입->(이메일 입력)
+                      //회원가입->(이메일 입력)
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Email address"
                       style={{
-                        width: '100%',
-                        padding: '10px',
-                        margin: '5px 0',
-                        borderRadius: '5px',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        color: '#fff'
+                        width: "100%",
+                        padding: "10px",
+                        margin: "5px 0",
+                        borderRadius: "5px",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                        background: "rgba(255, 255, 255, 0.06)",
+                        color: "#fff",
                       }}
                     />
                     <input
-                    ////회원가입->(비밀번호 입력)
+                      ////회원가입->(비밀번호 입력)
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Password"
                       style={{
-                        width: '100%',
-                        padding: '10px',
-                        margin: '5px 0',
-                        borderRadius: '5px',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        color: '#fff'
+                        width: "100%",
+                        padding: "10px",
+                        margin: "5px 0",
+                        borderRadius: "5px",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                        background: "rgba(255, 255, 255, 0.06)",
+                        color: "#fff",
                       }}
                     />
                   </Step>
@@ -828,18 +880,21 @@ const Login = ({ onBack }) => {
           ) : (
             <motion.div
               key={authStage}
-              initial={{ opacity: 0, scale: 0.95, y: 20, filter: 'blur(0px)' }}
+              initial={{ opacity: 0, scale: 0.95, y: 20, filter: "blur(0px)" }}
               animate={{
                 opacity: isTransitioning ? 0 : 1,
                 scale: isTransitioning ? 0.88 : 1,
                 y: isTransitioning ? 40 : 0,
-                filter: isTransitioning ? 'blur(8px)' : 'blur(0px)',
+                filter: isTransitioning ? "blur(8px)" : "blur(0px)",
               }}
-              exit={{ opacity: 0, scale: 0.95, y: 20, filter: 'blur(6px)' }}
-              transition={{ duration: authStageFadeDurationSec, ease: "easeInOut" }}
+              exit={{ opacity: 0, scale: 0.95, y: 20, filter: "blur(6px)" }}
+              transition={{
+                duration: authStageFadeDurationSec,
+                ease: "easeInOut",
+              }}
             >
               <StyledWrapper>
-                {authStage === 'login' && (
+                {authStage === "login" && (
                   <form className="form" onSubmit={handleLoginClick}>
                     <p className="auth-kicker">Login</p>
                     <h1 className="auth-title">Project : NOOS</h1>
@@ -848,7 +903,9 @@ const Login = ({ onBack }) => {
                     </p>
 
                     <div className="auth-fields">
-                      <label className="auth-label" htmlFor="login-email">Email</label>
+                      <label className="auth-label" htmlFor="login-email">
+                        Email
+                      </label>
                       <input
                         id="login-email"
                         className="input auth-input"
@@ -856,13 +913,14 @@ const Login = ({ onBack }) => {
                         name="email"
                         placeholder="you@example.com"
                         required
-
                         //이메일
-                        value={email} 
+                        value={email}
                         onChange={(e) => setEmail(e.target.value)}
                       />
 
-                      <label className="auth-label" htmlFor="login-password">Password</label>
+                      <label className="auth-label" htmlFor="login-password">
+                        Password
+                      </label>
                       <input
                         id="login-password"
                         className="input auth-input"
@@ -870,7 +928,6 @@ const Login = ({ onBack }) => {
                         name="password"
                         placeholder="••••••••"
                         required
-
                         //패스워드
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -878,64 +935,85 @@ const Login = ({ onBack }) => {
                     </div>
 
                     <div className="social-login">
-                      <button 
-                        type="button" 
-                        className="social-button" 
+                      <button
+                        type="button"
+                        className="social-button"
                         aria-label="Login with Google"
                         onClick={handleGoogleLogin} // 클릭 이벤트 추가
                       >
-                        <Chrome aria-hidden="true" size={16} strokeWidth={1.8} />
+                        <Chrome
+                          aria-hidden="true"
+                          size={16}
+                          strokeWidth={1.8}
+                        />
                       </button>
 
-                      <button 
-                        type="button" 
-                        className="social-button" 
+                      <button
+                        type="button"
+                        className="social-button"
                         aria-label="Login with GitHub"
                         onClick={handleGithubLogin}
                       >
-                        <Github aria-hidden="true" size={16} strokeWidth={1.8} />
+                        <Github
+                          aria-hidden="true"
+                          size={16}
+                          strokeWidth={1.8}
+                        />
                       </button>
 
-                      <button 
-                        type="button" 
-                        className="social-button" 
+                      <button
+                        type="button"
+                        className="social-button"
                         aria-label="Login with Apple"
-                        >
+                      >
                         <Apple aria-hidden="true" size={16} strokeWidth={1.8} />
                       </button>
                     </div>
 
                     <div className="auth-actions">
-                      <button type="submit" className="button-confirm auth-submit">
+                      <button
+                        type="submit"
+                        className="button-confirm auth-submit"
+                      >
                         Let's go!
                       </button>
                     </div>
 
                     <p className="signup-link">
-                      Don&apos;t have an account? <button type="button" className="signup-text" onClick={handleSignUpClick}>Sign Up</button>
+                      Don&apos;t have an account?{" "}
+                      <button
+                        type="button"
+                        className="signup-text"
+                        onClick={handleSignUpClick}
+                      >
+                        Sign Up
+                      </button>
                     </p>
                   </form>
                 )}
 
-                {authStage === 'device-question' && (
+                {authStage === "device-question" && (
                   <div className="flow-card flow-card-device">
                     <p className="flow-kicker">Device Check</p>
-                    <h2 className="flow-title">"Muse S Athena"를 보유하고 계신가요?</h2>
+                    <h2 className="flow-title">
+                      "Muse S Athena"를 보유하고 계신가요?
+                    </h2>
                     <p className="flow-description">
-                      Project NOOS의 집중/감정 분석을 위해 장치 보유 여부를 먼저 확인합니다.
+                      Project NOOS의 집중/감정 분석을 위해 장치 보유 여부를 먼저
+                      확인합니다.
                     </p>
                     <div className="binary-actions">
                       <button
                         type="button"
                         className="option-button option-yes"
-                        onClick={() => handleMuseChoice('yes')}
+                        onClick={() => handleMuseChoice("yes")}
                       >
                         Yes, 보유 중입니다
                       </button>
                       <button
                         type="button"
                         className="option-button option-no"
-                        onClick={() => handleMuseChoice('no')}
+                        onClick={() => handleMuseChoice("no")}
                       >
                         No, 보유하지 않았어요
                       </button>
@@ -943,17 +1021,28 @@ const Login = ({ onBack }) => {
                   </div>
                 )}
 
-                {authStage === 'device-connecting' && (
+                {authStage === "device-connecting" && (
                   <div className="flow-card flow-card-analysis">
                     <p className="flow-kicker">측정 모드</p>
-                    <h2 className="flow-title">Muse S Athena를 연결중입니다.</h2>
+                    <h2 className="flow-title">
+                      Muse S Athena를 연결중입니다.
+                    </h2>
 
                     {/* 데이터 수신 확인용) */}
-                    <p style={{ fontSize: '12px', color: '#00ff00', fontFamily: 'monospace' }}>
-                      {latestEegValue !== null ? `Streaming: ${latestEegValue.toFixed(2)}uV` : 'Initializing...'}
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "#00ff00",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {latestEegValue !== null
+                        ? `Streaming: ${latestEegValue.toFixed(2)}uV`
+                        : "Initializing..."}
                     </p>
                     <p className="flow-description">
-                      응답 분석과 동일한 처리 흐름으로 디바이스 상태를 점검하고 있습니다.
+                      응답 분석과 동일한 처리 흐름으로 디바이스 상태를 점검하고
+                      있습니다.
                     </p>
                     <div className="analysis-loader-shell" aria-hidden="true">
                       <span className="analysis-loader-ring analysis-loader-ring-1" />
@@ -971,57 +1060,62 @@ const Login = ({ onBack }) => {
                   </div>
                 )}
 
-                {authStage === 'device-complete' && (
+                {authStage === "device-complete" && (
                   <div className="flow-card flow-card-analysis flow-card-device-complete">
                     <p className="flow-kicker">측정 모드</p>
                     <h2 className="flow-title">연결완료!</h2>
                     <p className="flow-description">
-                      Muse S Athena 연결 및 초기 동기화가 끝났습니다. 연결 상태를 불러오고 있습니다.
+                      Muse S Athena 연결 및 초기 동기화가 끝났습니다. 연결
+                      상태를 불러오고 있습니다.
                     </p>
-                    <div style={{ width: 'min(100%, 520px)', marginTop: 22 }}>
+                    <div style={{ width: "min(100%, 520px)", marginTop: 22 }}>
                       <div
                         style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
+                          display: "flex",
+                          justifyContent: "space-between",
                           fontSize: 12,
-                          color: 'rgba(255,255,255,0.68)',
+                          color: "rgba(255,255,255,0.68)",
                           marginBottom: 10,
                         }}
                       >
-                      <span>진행률</span>
+                        <span>진행률</span>
                         <span>{measurementProgressPercent}%</span>
                       </div>
                       <div
                         style={{
-                          width: '100%',
+                          width: "100%",
                           height: 10,
                           borderRadius: 999,
-                          background: 'rgba(255,255,255,0.12)',
-                          overflow: 'hidden',
+                          background: "rgba(255,255,255,0.12)",
+                          overflow: "hidden",
                         }}
                       >
                         <span
                           aria-hidden="true"
                           style={{
-                            display: 'block',
+                            display: "block",
                             width: `${measurementProgressPercent}%`,
-                            height: '100%',
+                            height: "100%",
                             borderRadius: 999,
-                            background: 'linear-gradient(90deg, rgba(127,227,255,0.55), rgba(255,255,255,0.95))',
-                            boxShadow: '0 0 18px rgba(127,227,255,0.45)',
-                            transition: 'width 120ms linear',
+                            background:
+                              "linear-gradient(90deg, rgba(127,227,255,0.55), rgba(255,255,255,0.95))",
+                            boxShadow: "0 0 18px rgba(127,227,255,0.45)",
+                            transition: "width 120ms linear",
                           }}
                         />
                       </div>
                     </div>
-                    <div className="connection-complete-badge" aria-hidden="true">
+                    <div
+                      className="connection-complete-badge"
+                      aria-hidden="true"
+                    >
                       <span className="connection-complete-dot" />
                       <span className="connection-complete-label">{`${Math.round((measurementProgressPercent / 100) * MEASUREMENT_DURATION_SEC)}초 / ${MEASUREMENT_DURATION_SEC}초`}</span>
                     </div>
                   </div>
                 )}
 
-                {authStage === 'analysis-loading' && (
+                {authStage === "analysis-loading" && (
                   <div className="flow-card flow-card-analysis">
                     <p className="flow-kicker">Mind Analysis</p>
                     <h2 className="flow-title">현재 상태를 분석중입니다.</h2>
@@ -1043,7 +1137,6 @@ const Login = ({ onBack }) => {
                     </div>
                   </div>
                 )}
-
               </StyledWrapper>
             </motion.div>
           )}
@@ -1150,14 +1243,16 @@ const WarpTransitionWrapper = styled(motion.div)`
   @keyframes warpStar {
     0% {
       opacity: 0;
-      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scaleY(0.1);
+      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0)
+        scaleY(0.1);
     }
     18% {
       opacity: var(--star-opacity);
     }
     100% {
       opacity: 0;
-      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--distance)) scaleY(1.25);
+      transform: translate(-50%, -50%) rotate(var(--angle))
+        translateY(var(--distance)) scaleY(1.25);
     }
   }
 
@@ -1179,7 +1274,12 @@ const SolarEntryWarpLayer = styled(motion.div)`
   z-index: 80;
   pointer-events: none;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 50%, rgba(185, 215, 255, 0.18) 0%, rgba(12, 18, 46, 0.16) 34%, rgba(0, 0, 0, 0) 76%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(185, 215, 255, 0.18) 0%,
+    rgba(12, 18, 46, 0.16) 34%,
+    rgba(0, 0, 0, 0) 76%
+  );
   mix-blend-mode: normal;
 
   .entry-stars {
@@ -1226,14 +1326,16 @@ const SolarEntryWarpLayer = styled(motion.div)`
   @keyframes entryWarpStar {
     0% {
       opacity: 0;
-      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scaleY(0.08);
+      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0)
+        scaleY(0.08);
     }
     16% {
       opacity: var(--star-opacity);
     }
     100% {
       opacity: 0;
-      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--distance)) scaleY(1.55);
+      transform: translate(-50%, -50%) rotate(var(--angle))
+        translateY(var(--distance)) scaleY(1.55);
     }
   }
 `;
@@ -1285,7 +1387,10 @@ const StepperWrapper = styled.div`
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
-    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease,
+      box-shadow 0.2s ease;
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.6);
@@ -1301,7 +1406,8 @@ const StepperWrapper = styled.div`
 
 const StyledWrapper = styled.div`
   @keyframes connectionDotPulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(0.9);
       opacity: 0.62;
     }
@@ -1312,7 +1418,8 @@ const StyledWrapper = styled.div`
   }
 
   @keyframes analysisRingPulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.32;
       transform: translate(-50%, -50%) scale(0.94);
     }
@@ -1323,7 +1430,8 @@ const StyledWrapper = styled.div`
   }
 
   @keyframes analysisCorePulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(0.82);
       opacity: 0.7;
     }
@@ -1354,13 +1462,19 @@ const StyledWrapper = styled.div`
     backdrop-filter: blur(14px);
     box-shadow: 0 16px 42px rgba(0, 0, 0, 0.52);
     position: relative;
-    font-family: 'Freesentation', 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family:
+      "Freesentation",
+      "SF Pro",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
   }
 
   .auth-kicker {
     margin: 0;
     color: rgba(255, 255, 255, 0.66);
-    font-family: 'Cardinal Fruit', 'SF Pro Bold', sans-serif;
+    font-family: "Cardinal Fruit", "SF Pro Bold", sans-serif;
     font-size: 11px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -1369,7 +1483,7 @@ const StyledWrapper = styled.div`
   .auth-title {
     margin: 2px 0 0;
     color: #fff;
-    font-family: 'Cardinal Fruit', 'Freesentation Black', sans-serif;
+    font-family: "Cardinal Fruit", "Freesentation Black", sans-serif;
     font-size: clamp(30px, 3.3vw, 42px);
     letter-spacing: -0.02em;
     line-height: 1.04;
@@ -1395,7 +1509,7 @@ const StyledWrapper = styled.div`
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    font-family: 'Cardinal Fruit', 'SF Pro Bold', sans-serif;
+    font-family: "Cardinal Fruit", "SF Pro Bold", sans-serif;
   }
 
   .input.auth-input {
@@ -1445,7 +1559,11 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease,
+      color 0.2s ease;
   }
 
   .social-button:hover {
@@ -1471,7 +1589,7 @@ const StyledWrapper = styled.div`
     border: 1px solid #fff;
     background: #fff;
     color: #000;
-    font-family: 'Cardinal Fruit', 'Freesentation Bold', sans-serif;
+    font-family: "Cardinal Fruit", "Freesentation Bold", sans-serif;
     font-size: 13px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1497,7 +1615,7 @@ const StyledWrapper = styled.div`
     font-size: 13px;
     line-height: 1.5;
     text-align: center;
-    font-family: 'Freesentation', 'SF Pro', sans-serif;
+    font-family: "Freesentation", "SF Pro", sans-serif;
   }
 
   .signup-text {
@@ -1506,7 +1624,7 @@ const StyledWrapper = styled.div`
     border: 0;
     background: transparent;
     color: #fff;
-    font-family: 'Cardinal Fruit', 'Freesentation Bold', sans-serif;
+    font-family: "Cardinal Fruit", "Freesentation Bold", sans-serif;
     letter-spacing: 0.07em;
     text-transform: uppercase;
     cursor: pointer;
@@ -1528,7 +1646,13 @@ const StyledWrapper = styled.div`
     backdrop-filter: blur(10px);
     max-width: 760px;
     width: 100%;
-    font-family: 'Freesentation', 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family:
+      "Freesentation",
+      "SF Pro",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
   }
 
   .flow-kicker {
@@ -1538,7 +1662,7 @@ const StyledWrapper = styled.div`
     text-transform: uppercase;
     margin-bottom: 10px;
     font-weight: 700;
-    font-family: 'Cardinal Fruit', 'SF Pro Bold', sans-serif;
+    font-family: "Cardinal Fruit", "SF Pro Bold", sans-serif;
   }
 
   .flow-title {
@@ -1546,7 +1670,8 @@ const StyledWrapper = styled.div`
     font-size: 28px;
     line-height: 1.25;
     font-weight: 900;
-    font-family: 'Freesentation Black', 'Cardinal Fruit', 'SF Pro Heavy', sans-serif;
+    font-family:
+      "Freesentation Black", "Cardinal Fruit", "SF Pro Heavy", sans-serif;
     letter-spacing: -0.01em;
   }
 
@@ -1555,12 +1680,16 @@ const StyledWrapper = styled.div`
     color: rgba(255, 255, 255, 0.78);
     line-height: 1.6;
     font-size: 15px;
-    font-family: 'Freesentation', 'SF Pro', sans-serif;
+    font-family: "Freesentation", "SF Pro", sans-serif;
   }
 
   .flow-card-device {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.04),
+        rgba(255, 255, 255, 0.02)
+      ),
       rgba(0, 0, 0, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow:
@@ -1590,7 +1719,11 @@ const StyledWrapper = styled.div`
 
   .flow-card-analysis {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.02)
+      ),
       rgba(0, 0, 0, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.22);
     box-shadow:
@@ -1635,7 +1768,7 @@ const StyledWrapper = styled.div`
     background: rgba(255, 255, 255, 0.06);
     border-radius: 999px;
     color: rgba(255, 255, 255, 0.92);
-    font-family: 'Cardinal Fruit', 'Freesentation Bold', sans-serif;
+    font-family: "Cardinal Fruit", "Freesentation Bold", sans-serif;
     font-size: 12px;
     letter-spacing: 0.13em;
     text-transform: uppercase;
@@ -1663,7 +1796,11 @@ const StyledWrapper = styled.div`
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     background:
-      radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.01) 62%),
+      radial-gradient(
+        circle at 50% 44%,
+        rgba(255, 255, 255, 0.12),
+        rgba(255, 255, 255, 0.01) 62%
+      ),
       rgba(0, 0, 0, 0.58);
     display: grid;
     place-items: center;
@@ -1717,7 +1854,12 @@ const StyledWrapper = styled.div`
     left: 0;
     top: 0;
     border-radius: inherit;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 38%, rgba(255, 255, 255, 0));
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0),
+      #fff 38%,
+      rgba(255, 255, 255, 0)
+    );
     animation: analysisTrackScan 1.55s linear infinite;
   }
 
@@ -1732,7 +1874,7 @@ const StyledWrapper = styled.div`
     color: rgba(255, 255, 255, 0.58);
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-family: 'Cardinal Fruit', 'Freesentation Bold', sans-serif;
+    font-family: "Cardinal Fruit", "Freesentation Bold", sans-serif;
   }
 
   .binary-actions {
@@ -1752,7 +1894,8 @@ const StyledWrapper = styled.div`
     color: white;
     background: rgba(255, 255, 255, 0.06);
     transition: all 0.2s ease;
-    font-family: 'Cardinal Fruit', 'Freesentation Bold', 'SF Pro Bold', sans-serif;
+    font-family:
+      "Cardinal Fruit", "Freesentation Bold", "SF Pro Bold", sans-serif;
     letter-spacing: 0.01em;
   }
 
@@ -1777,7 +1920,7 @@ const StyledWrapper = styled.div`
     border: 1px solid rgba(255, 255, 255, 0.24);
     background: rgba(255, 255, 255, 0.02);
     color: rgba(255, 255, 255, 0.92);
-    font-family: 'Cardinal Fruit', 'Freesentation Bold', sans-serif;
+    font-family: "Cardinal Fruit", "Freesentation Bold", sans-serif;
     font-weight: 500;
   }
 
