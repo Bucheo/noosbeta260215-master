@@ -9,6 +9,7 @@ const AboutUs = lazy(() => import("./components/sections/AboutUs.jsx"));
 const SolarExplorer = lazy(() => import("./components/features/solar/SolarExplorer.jsx"));
 const SpaceTravel = lazy(() => import("./components/features/solar/SpaceTravel.jsx"));
 const AdminPage = lazy(() => import("./components/features/auth/AdminPage.jsx"));
+const BoardPage = lazy(() => import("./components/features/auth/board/BoardPage.jsx"));
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -39,13 +40,13 @@ root.render(
             </LazyRoute>
           )}
         />
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={(
             <LazyRoute>
               <AdminPage />
             </LazyRoute>
-          )} 
+          )}
         />
         <Route
           path="/about"
@@ -76,6 +77,15 @@ root.render(
           element={(
             <LazyRoute>
               <SpaceTravel />
+            </LazyRoute>
+          )}
+        />
+        {/* 게시판: /api.auth/board 경로 */}
+        <Route
+          path="/api.auth/board"
+          element={(
+            <LazyRoute>
+              <BoardPage />
             </LazyRoute>
           )}
         />
