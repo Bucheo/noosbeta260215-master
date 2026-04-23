@@ -157,10 +157,25 @@ const LiveChatPage = () => {
   const roomId         = currentUser;  // 채팅방 ID = 유저 닉네임
 
   // ── SockJS + STOMP 라이브러리 동적 로드 ───────────────────────────────────
+  // window.SockJS / window.Stomp 존재 여부로 이미 로드됐는지 확인
   useEffect(() => {
+    const loadWithCheck = (src, globalKey) => new Promise((res, rej) => {
+      if (window[globalKey]) { res(); return; }
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        existing.addEventListener("load", res);
+        existing.addEventListener("error", rej);
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = res;
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
     Promise.all([
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"),
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"),
+      loadWithCheck("https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js", "SockJS"),
+      loadWithCheck("https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js", "Stomp"),
     ])
       .then(() => setLibLoaded(true))
       .catch(() => console.error("WebSocket 라이브러리 로드 실패"));

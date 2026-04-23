@@ -20,11 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service
 public class ChatService {
-
-
-    public ChatService(BoardMapper boardMapper) {
-        this.boardMapper = boardMapper;
-    }
     /**
      * 활성 채팅방 목록
      * key  = roomId (유저 displayName 기반)

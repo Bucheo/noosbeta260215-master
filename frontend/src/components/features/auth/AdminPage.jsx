@@ -687,17 +687,31 @@ const AdminChatTab = () => {
   const messagesEndRef  = React.useRef(null);
 
   // SockJS + STOMP 동적 로드
+  // 이미 로드된 스크립트라도 window.SockJS 존재 여부로 확인하여 중복 로드 방지
   React.useEffect(() => {
-    const load = (src) => new Promise((res, rej) => {
-      if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const load = (src, globalKey) => new Promise((res, rej) => {
+      // 이미 window에 해당 객체가 있으면 즉시 완료
+      if (window[globalKey]) { res(); return; }
+      // 스크립트 태그가 이미 있으면 onload 대기
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        existing.addEventListener("load", res);
+        existing.addEventListener("error", rej);
+        return;
+      }
+      // 새로 스크립트 추가
       const s = document.createElement("script");
-      s.src = src; s.onload = res; s.onerror = rej;
+      s.src = src;
+      s.onload = res;
+      s.onerror = rej;
       document.head.appendChild(s);
     });
     Promise.all([
-      load("https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"),
-      load("https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"),
-    ]).then(() => setLibLoaded(true));
+      load("https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js", "SockJS"),
+      load("https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js", "Stomp"),
+    ])
+      .then(() => setLibLoaded(true))
+      .catch((e) => console.error("WebSocket 라이브러리 로드 실패:", e));
   }, []);
 
   // 채팅방 목록 주기적 갱신 (5초마다)

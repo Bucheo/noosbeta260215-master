@@ -14,12 +14,12 @@
     board_comments - 댓글 저장
   ─────────────────────────────────────────────────────────────────────────────
 -->
-<mapper namespace="com.noos.backend.auth.mapper.BoardMapper">
+<mapper namespace="com.noos.backend.board.mapper.BoardMapper">
 
     <!-- ─────────────────────────────────────────────────────────────────── -->
     <!-- ResultMap: board_posts 컬럼 ↔ BoardPost 필드 매핑                   -->
     <!-- ─────────────────────────────────────────────────────────────────── -->
-    <resultMap id="postResultMap" type="com.noos.backend.auth.dto.BoardPost">
+    <resultMap id="postResultMap" type="com.noos.backend.board.dto.BoardPost">
         <id     property="id"           column="id"            />
         <result property="category"     column="category"      />
         <result property="title"        column="title"         />
@@ -37,7 +37,7 @@
     <!-- ─────────────────────────────────────────────────────────────────── -->
     <!-- ResultMap: board_comments 컬럼 ↔ BoardComment 필드 매핑             -->
     <!-- ─────────────────────────────────────────────────────────────────── -->
-    <resultMap id="commentResultMap" type="com.noos.backend.auth.dto.BoardComment">
+    <resultMap id="commentResultMap" type="com.noos.backend.board.dto.BoardComment">
         <id     property="id"        column="id"         />
         <result property="postId"    column="post_id"    />
         <result property="authorId"  column="author_id"  />

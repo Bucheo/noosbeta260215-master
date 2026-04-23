@@ -37,35 +37,40 @@ public class AuthController {
     }
 
     // ── 로그인 ───────────────────────────────────────────────────────────────
-    // 로그인 성공 시 세션에 userId / displayName / role 저장
-    // BoardController / ChatController 에서 세션 값을 읽어 작성자 정보로 사용
     @PostMapping("/login")
     public String login(@RequestBody SignupRequest request, HttpSession session) {
         String result = authService.loginAndRole(request);
 
+        System.out.println("[LOGIN] loginId=" + request.getLoginId() + " result=" + result);
+
         if (!result.equals("fail")) {
             User user = authMapper.findLocalUserByLoginId(request.getLoginId());
             if (user != null) {
-                // 세션에 유저 정보 저장 (30분 유지)
+                // 세션에 유저 정보 저장
                 session.setAttribute("userId",      user.getUserId());
                 session.setAttribute("displayName", user.getDisplayName());
                 session.setAttribute("role",        result.equals("admin") ? "ADMIN" : "USER");
-                session.setMaxInactiveInterval(1800); // 세션 30분
+                session.setMaxInactiveInterval(1800);
+
+                System.out.println("[LOGIN] 세션 저장 완료 - sessionId=" + session.getId()
+                    + " userId=" + user.getUserId()
+                    + " displayName=" + user.getDisplayName()
+                    + " role=" + session.getAttribute("role"));
+            } else {
+                System.out.println("[LOGIN] 유저를 DB에서 찾을 수 없음");
             }
         }
 
-        return result; // "admin" | "ok" | "fail"
+        return result;
     }
 
-    // ── 현재 로그인 상태 확인 ─────────────────────────────────────────────────
-    // 프론트엔드 페이지 진입 시 세션 유지 여부 확인용
-    // 로그인 상태: JSON 반환 { userId, displayName, role }
-    // 미로그인:   "notLoggedIn" 문자열 반환
+    // ── 세션 확인 ─────────────────────────────────────────────────────────────
     @GetMapping("/me")
     public ResponseEntity<?> me(HttpSession session) {
         Object userId = session.getAttribute("userId");
 
-        // 세션에 userId 없으면 미로그인 상태
+        System.out.println("[ME] sessionId=" + session.getId() + " userId=" + userId);
+
         if (userId == null) {
             return ResponseEntity.ok("notLoggedIn");
         }
@@ -80,7 +85,7 @@ public class AuthController {
     // ── 로그아웃 ──────────────────────────────────────────────────────────────
     @PostMapping("/logout")
     public String logout(HttpSession session) {
-        session.invalidate(); // 세션 완전 삭제
+        session.invalidate();
         return "ok";
     }
 }
