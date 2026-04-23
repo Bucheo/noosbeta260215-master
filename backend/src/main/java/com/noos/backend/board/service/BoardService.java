@@ -1,9 +1,10 @@
-package com.noos.backend.auth.service;
+package com.noos.backend.board.service;
 
-import com.noos.backend.auth.dto.BoardComment;
-import com.noos.backend.auth.dto.BoardPost;
-import com.noos.backend.auth.dto.BoardRequest;
-import com.noos.backend.auth.mapper.BoardMapper;
+import com.noos.backend.board.dto.BoardComment;
+import com.noos.backend.board.dto.BoardPost;
+import com.noos.backend.board.dto.BoardRequest;
+import com.noos.backend.board.mapper.BoardMapper;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,20 @@ public class BoardService {
     public BoardPost getPost(Long id) {
         boardMapper.incrementViews(id);
         return boardMapper.findPostById(id);
+    }
+
+    // ── 게시글 상세 조회 + 좋아요 여부 포함 ──────────────────────────────────
+    // 로그인 유저의 좋아요 여부를 함께 반환
+    @Transactional
+    public Map<String, Object> getPostWithLike(Long id, Long userId) {
+        boardMapper.incrementViews(id);
+        BoardPost post = boardMapper.findPostById(id);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("post",    post);
+        // userId가 있으면 좋아요 여부 확인, 없으면 false
+        result.put("liked", userId != null && boardMapper.checkUserLiked(userId, id) > 0);
+        return result;
     }
 
     // ── 게시글 작성 ───────────────────────────────────────────────────────────
@@ -108,10 +123,34 @@ public class BoardService {
     }
 
     // ── 게시글 좋아요 토글 ────────────────────────────────────────────────────
+    // board_post_likes 테이블로 유저별 중복 방지
+    // - 좋아요 안 한 상태 → INSERT + likes +1 → liked: true 반환
+    // - 이미 좋아요 한 상태 → DELETE + likes -1 → liked: false 반환
     @Transactional
-    public void toggleLike(Long id, boolean like) {
-        if (like) boardMapper.incrementLikes(id);
-        else      boardMapper.decrementLikes(id);
+    public Map<String, Object> toggleLike(Long postId, Long userId) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 현재 좋아요 상태 확인
+        boolean alreadyLiked = boardMapper.checkUserLiked(userId, postId) > 0;
+
+        if (alreadyLiked) {
+            // 좋아요 취소
+            boardMapper.deleteUserLike(userId, postId);
+            boardMapper.decrementLikes(postId);
+            result.put("liked", false);
+            result.put("message", "추천을 취소하였습니다.");
+        } else {
+            // 좋아요 등록
+            boardMapper.insertUserLike(userId, postId);
+            boardMapper.incrementLikes(postId);
+            result.put("liked", true);
+            result.put("message", "추천하였습니다.");
+        }
+
+        // 변경 후 최신 likes 수 반환
+        BoardPost updated = boardMapper.findPostById(postId);
+        result.put("likes", updated != null ? updated.getLikes() : 0);
+        return result;
     }
 
     // ── 댓글 목록 조회 ────────────────────────────────────────────────────────
@@ -134,8 +173,8 @@ public class BoardService {
         comment.setAuthor(authorName);
         comment.setCreatedAt(LocalDateTime.now());
 
-        boardMapper.insertComment(comment);         // 댓글 INSERT
-        boardMapper.incrementCommentCount(postId);  // 게시글 댓글 수 +1
+        boardMapper.insertComment(comment);
+        boardMapper.incrementCommentCount(postId);
         return comment;
     }
 
@@ -149,12 +188,37 @@ public class BoardService {
             throw new SecurityException("삭제 권한이 없습니다.");
 
         boardMapper.deleteComment(commentId);
-        boardMapper.decrementCommentCount(comment.getPostId()); // 게시글 댓글 수 -1
+        boardMapper.decrementCommentCount(comment.getPostId());
     }
 
-    // ── 댓글 좋아요 ───────────────────────────────────────────────────────────
+    // ── 댓글 좋아요 토글 ─────────────────────────────────────────────────────
+    // board_comment_likes 테이블로 유저별 중복 방지
+    // - 첫 클릭:  INSERT + likes+1 → liked: true
+    // - 재클릭:   DELETE + likes-1 → liked: false
     @Transactional
-    public void likeComment(Long commentId) {
-        boardMapper.incrementCommentLikes(commentId);
+    public Map<String, Object> toggleCommentLike(Long commentId, Long userId) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 현재 좋아요 상태 확인
+        boolean alreadyLiked = boardMapper.checkUserCommentLiked(userId, commentId) > 0;
+
+        if (alreadyLiked) {
+            // 좋아요 취소
+            boardMapper.deleteUserCommentLike(userId, commentId);
+            boardMapper.decrementCommentLikes(commentId);
+            result.put("liked", false);
+            result.put("message", "댓글 추천을 취소하였습니다.");
+        } else {
+            // 좋아요 등록
+            boardMapper.insertUserCommentLike(userId, commentId);
+            boardMapper.incrementCommentLikes(commentId);
+            result.put("liked", true);
+            result.put("message", "댓글을 추천하였습니다.");
+        }
+
+        // 변경 후 최신 likes 수 반환
+        BoardComment updated = boardMapper.findCommentById(commentId);
+        result.put("likes", updated != null ? updated.getLikes() : 0);
+        return result;
     }
 }

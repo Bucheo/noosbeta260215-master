@@ -65,3 +65,12 @@ VALUES
     ('NOTICE', '서비스 이용 규칙 안내',
      '서비스 이용 시 다음 규칙을 준수해 주세요.\n\n1. 타인을 비방하는 게시글은 삭제될 수 있습니다.\n2. 광고성 게시글은 허용되지 않습니다.\n3. 개인 정보를 공유하지 마세요.',
      '관리자', 1, 100, 10, 0, 1, NOW());
+
+-- 댓글 좋아요 중복 방지 테이블
+CREATE TABLE IF NOT EXISTS board_comment_likes (
+    user_id    BIGINT NOT NULL COMMENT '좋아요 누른 유저 ID',
+    comment_id BIGINT NOT NULL COMMENT '좋아요 대상 댓글 ID',
+    PRIMARY KEY (user_id, comment_id),
+    CONSTRAINT fk_commentlike_user    FOREIGN KEY (user_id)    REFERENCES users(user_id)          ON DELETE CASCADE,
+    CONSTRAINT fk_commentlike_comment FOREIGN KEY (comment_id) REFERENCES board_comments(id)      ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='댓글 좋아요 기록';

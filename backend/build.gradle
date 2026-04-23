@@ -39,6 +39,9 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // WebSocket (실시간 채팅용 STOMP 프로토콜)
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
     // 테스트 기본 라이브러리
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 

@@ -1,4 +1,4 @@
-package com.noos.backend.auth.dto;
+package com.noos.backend.board.dto;
 
 /** 게시글 작성/수정 요청 바디 DTO */
 public class BoardRequest {

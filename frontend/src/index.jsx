@@ -9,7 +9,8 @@ const AboutUs = lazy(() => import("./components/sections/AboutUs.jsx"));
 const SolarExplorer = lazy(() => import("./components/features/solar/SolarExplorer.jsx"));
 const SpaceTravel = lazy(() => import("./components/features/solar/SpaceTravel.jsx"));
 const AdminPage = lazy(() => import("./components/features/auth/AdminPage.jsx"));
-const BoardPage = lazy(() => import("./components/features/auth/board/BoardPage.jsx"));
+const BoardPage = lazy(() => import("./components/features/board/BoardPage.jsx"));
+const LiveChatPage = lazy(() => import("./components/features/auth/livechat/LiveChatPage.jsx"));
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -86,6 +87,15 @@ root.render(
           element={(
             <LazyRoute>
               <BoardPage />
+            </LazyRoute>
+          )}
+        />
+        {/* 실시간 채팅: /api.auth/livechat 경로 */}
+        <Route
+          path="/api.auth/livechat"
+          element={(
+            <LazyRoute>
+              <LiveChatPage />
             </LazyRoute>
           )}
         />

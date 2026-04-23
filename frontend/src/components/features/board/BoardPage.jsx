@@ -130,44 +130,55 @@ const PostCard = ({ post, onClick, index }) => {
 // ════════════════════════════════════════════════════════════════════════════════
 // CommentItem
 // ════════════════════════════════════════════════════════════════════════════════
-const CommentItem = ({ comment, currentUser, onDelete, onLike }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -10 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: 10 }}
-    style={{
-      background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)",
-      borderRadius: 10, padding: "12px 16px", marginBottom: 8,
-    }}
-  >
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#a3ceff" }}>{comment.author}</span>
-          <span style={{ fontSize: 11, color: "#666688" }}>{formatDate(comment.createdAt)}</span>
+const CommentItem = ({ comment, currentUser, onDelete, onLike, likedComments }) => {
+  // likedComments: 현재 유저가 좋아요 누른 댓글 ID Set
+  const isLiked = likedComments?.has(comment.id) ?? false;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 10 }}
+      style={{
+        background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)",
+        borderRadius: 10, padding: "12px 16px", marginBottom: 8,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#a3ceff" }}>{comment.author}</span>
+            <span style={{ fontSize: 11, color: "#666688" }}>{formatDate(comment.createdAt)}</span>
+          </div>
+          <p style={{ fontSize: 13, color: "#ccccdd", lineHeight: 1.6 }}>{comment.content}</p>
         </div>
-        <p style={{ fontSize: 13, color: "#ccccdd", lineHeight: 1.6 }}>{comment.content}</p>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 12 }}>
-        {/* 댓글 좋아요 */}
-        <button onClick={() => onLike(comment.id)}
-          style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11,
-            color: "#ff6b9d", background: "none", border: "none", cursor: "pointer",
-            padding: "2px 6px", borderRadius: 6 }}>
-          <ThumbsUp size={12} />{comment.likes > 0 && <span>{comment.likes}</span>}
-        </button>
-        {/* 본인 댓글만 삭제 버튼 */}
-        {comment.author === currentUser && (
-          <button onClick={() => onDelete(comment.id)}
-            style={{ background: "none", border: "none", cursor: "pointer",
-              color: "#ff5555", padding: "2px 6px", borderRadius: 6 }}>
-            <Trash2 size={12} />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 12 }}>
+          {/* 댓글 좋아요 토글 버튼: 눌렀으면 색상 강조 */}
+          <button onClick={() => onLike(comment.id)}
+            style={{
+              display: "flex", alignItems: "center", gap: 4, fontSize: 11,
+              color: isLiked ? "#ff6b9d" : "#888899",
+              background: isLiked ? "rgba(255,107,157,0.12)" : "none",
+              border: isLiked ? "1px solid rgba(255,107,157,0.3)" : "1px solid transparent",
+              cursor: "pointer", padding: "2px 8px", borderRadius: 6,
+              transition: "all 0.2s",
+            }}>
+            <ThumbsUp size={12} fill={isLiked ? "#ff6b9d" : "none"} stroke="#ff6b9d" />
+            <span>{comment.likes}</span>
           </button>
-        )}
+          {/* 본인 댓글만 삭제 버튼 */}
+          {comment.author === currentUser && (
+            <button onClick={() => onDelete(comment.id)}
+              style={{ background: "none", border: "none", cursor: "pointer",
+                color: "#ff5555", padding: "2px 6px", borderRadius: 6 }}>
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PostDetail
@@ -175,7 +186,12 @@ const CommentItem = ({ comment, currentUser, onDelete, onLike }) => (
 const PostDetail = ({ post, onBack, onEdit, onDelete, currentUser, onRefresh }) => {
   const [comments,     setComments]     = useState([]);
   const [commentText,  setCommentText]  = useState("");
-  const [liked,        setLiked]        = useState(false);
+  // 게시글 좋아요 상태 (백엔드에서 받아온 initialLiked 로 초기화)
+  const [liked,        setLiked]        = useState(post.initialLiked ?? false);
+  // 실시간 좋아요 수 (백엔드 응답값으로 동기화)
+  const [likesCount,   setLikesCount]   = useState(post.likes ?? 0);
+  // 댓글 좋아요 상태: Set<commentId> — 현재 유저가 좋아요 누른 댓글 ID 모음
+  const [likedComments, setLikedComments] = useState(new Set());
   const catColor = getCategoryColor(post.category);
 
   // 댓글 목록 불러오기
@@ -213,22 +229,41 @@ const PostDetail = ({ post, onBack, onEdit, onDelete, currentUser, onRefresh }) 
     }
   };
 
-  // 댓글 좋아요 → POST /api/auth/board/comments/{commentId}/like
+  // 댓글 좋아요 토글 → POST /api/auth/board/comments/{commentId}/like
+  // 백엔드가 { liked: bool, likes: number } 반환
+  // 첫 클릭: liked=true, likes+1 / 재클릭: liked=false, likes-1
   const handleLikeComment = async (commentId) => {
     const res = await apiFetch(`${API}/comments/${commentId}/like`, { method: "POST" });
     if (res.ok) {
+      const data = await res.json();
+      // 댓글 likes 수를 서버 응답값으로 동기화
       setComments((prev) =>
-        prev.map((c) => c.id === commentId ? { ...c, likes: c.likes + 1 } : c)
+        prev.map((c) => c.id === commentId ? { ...c, likes: data.likes } : c)
       );
+      // likedComments Set 업데이트 (토글)
+      setLikedComments((prev) => {
+        const next = new Set(prev);
+        if (data.liked) next.add(commentId);
+        else            next.delete(commentId);
+        return next;
+      });
+    } else if (res.status === 401) {
+      alert("추천은 로그인 후 이용 가능합니다.");
     }
   };
 
-  // 게시글 좋아요 토글 → POST /api/auth/board/{id}/like?like=true/false
+  // 게시글 좋아요 토글 → POST /api/auth/board/{id}/like
+  // 백엔드가 { liked: bool, likes: number, message: string } 반환
+  // 첫 클릭: liked=true, likes+1 / 재클릭: liked=false, likes-1
   const handleLikePost = async () => {
-    const next = !liked;
-    const res = await apiFetch(`${API}/${post.id}/like?like=${next}`, { method: "POST" });
-    if (res.ok) setLiked(next);
-    else if (res.status === 401) alert("추천은 로그인 후 이용 가능합니다.");
+    const res = await apiFetch(`${API}/${post.id}/like`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      setLiked(data.liked);         // 서버 기준 좋아요 상태로 동기화
+      setLikesCount(data.likes);    // 서버 기준 좋아요 수로 동기화
+    } else if (res.status === 401) {
+      alert("추천은 로그인 후 이용 가능합니다.");
+    }
   };
 
   return (
@@ -295,7 +330,7 @@ const PostDetail = ({ post, onBack, onEdit, onDelete, currentUser, onRefresh }) 
               padding: "8px 16px", borderRadius: 30, cursor: "pointer", transition: "all .2s",
               fontWeight: liked ? 600 : 400 }}>
             <Heart size={15} fill={liked ? "#ff6b9d" : "none"} />
-            추천 {post.likes + (liked ? 1 : 0)}
+            추천 {likesCount}
           </button>
           <button style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13,
             background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)",
@@ -324,7 +359,8 @@ const PostDetail = ({ post, onBack, onEdit, onDelete, currentUser, onRefresh }) 
             ? <p style={{ fontSize: 13, color: "#666688", textAlign: "center", padding: "20px 0" }}>첫 댓글을 작성해보세요 ✨</p>
             : comments.map((c) => (
               <CommentItem key={c.id} comment={c} currentUser={currentUser}
-                onDelete={handleDeleteComment} onLike={handleLikeComment} />
+                onDelete={handleDeleteComment} onLike={handleLikeComment}
+                likedComments={likedComments} />
             ))
           }
         </AnimatePresence>
@@ -556,10 +592,13 @@ const BoardPage = () => {
   useEffect(() => { setCurrentPage(1); }, [category, searchQuery, sortBy]);
 
   // ── 게시글 상세 (조회수는 백엔드에서 자동 증가) ───────────────────────────
+  // 백엔드가 { post: {...}, liked: true/false } 형태로 반환
   const handleViewPost = async (post) => {
     const res  = await apiFetch(`${API}/${post.id}`);
     const data = await res.json();
-    setSelectedPost(data);
+    // post 객체와 liked 여부를 함께 저장
+    const postData = data.post ?? data; // 구버전 호환
+    setSelectedPost({ ...postData, initialLiked: data.liked ?? false });
     setView("detail");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

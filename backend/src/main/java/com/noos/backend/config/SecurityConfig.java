@@ -35,7 +35,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/auth/**", "/login/**", "/signup/**", "/oauth2/**").permitAll()
+            .requestMatchers("/api/auth/**", "/login/**", "/signup/**", "/oauth2/**", "/ws/**", "/api/chat/**").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated())
 

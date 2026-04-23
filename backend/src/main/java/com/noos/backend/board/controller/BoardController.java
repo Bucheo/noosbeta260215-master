@@ -1,30 +1,30 @@
-package com.noos.backend.auth.controller;
+package com.noos.backend.board.controller;
 
-import com.noos.backend.auth.dto.BoardComment;
-import com.noos.backend.auth.dto.BoardPost;
-import com.noos.backend.auth.dto.BoardRequest;
-import com.noos.backend.auth.service.BoardService;
+import com.noos.backend.board.dto.BoardComment;
+import com.noos.backend.board.dto.BoardRequest;
+import com.noos.backend.board.service.BoardService;
+
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Map; // ← Map 사용을 위해 필수
 
 /**
  * BoardController.java
  * 기본 경로: /api/auth/board
  *
- * GET    /api/auth/board                          - 게시글 목록
- * GET    /api/auth/board/{id}                     - 게시글 상세 + 조회수 증가
- * POST   /api/auth/board                          - 게시글 작성 (로그인 필요)
- * PUT    /api/auth/board/{id}                     - 게시글 수정 (본인/관리자)
- * DELETE /api/auth/board/{id}                     - 게시글 삭제 (본인/관리자)
- * POST   /api/auth/board/{id}/like                - 좋아요 토글
- * GET    /api/auth/board/{id}/comments            - 댓글 목록
- * POST   /api/auth/board/{id}/comments            - 댓글 작성
- * DELETE /api/auth/board/comments/{commentId}     - 댓글 삭제
- * POST   /api/auth/board/comments/{commentId}/like - 댓글 좋아요
+ * GET    /api/auth/board                           - 게시글 목록
+ * GET    /api/auth/board/{id}                      - 게시글 상세 + 좋아요 여부
+ * POST   /api/auth/board                           - 게시글 작성
+ * PUT    /api/auth/board/{id}                      - 게시글 수정
+ * DELETE /api/auth/board/{id}                      - 게시글 삭제
+ * POST   /api/auth/board/{id}/like                 - 게시글 좋아요 토글
+ * GET    /api/auth/board/{id}/comments             - 댓글 목록
+ * POST   /api/auth/board/{id}/comments             - 댓글 작성
+ * DELETE /api/auth/board/comments/{commentId}      - 댓글 삭제
+ * POST   /api/auth/board/comments/{commentId}/like - 댓글 좋아요 토글
  */
 @RestController
 @RequestMapping("/api/auth/board")
@@ -38,22 +38,25 @@ public class BoardController {
     }
 
     // ── 세션 헬퍼 ─────────────────────────────────────────────────────────────
+
+    /** 세션에서 로그인 유저 ID 추출 (미로그인 시 null) */
     private Long getSessionUserId(HttpSession session) {
         Object id = session.getAttribute("userId");
         return id != null ? Long.parseLong(id.toString()) : null;
     }
 
+    /** 세션에서 로그인 유저 닉네임 추출 */
     private String getSessionUserName(HttpSession session) {
         Object name = session.getAttribute("displayName");
         return name != null ? name.toString() : "익명";
     }
 
+    /** 세션에서 관리자 여부 확인 */
     private boolean isAdmin(HttpSession session) {
         return "ADMIN".equals(session.getAttribute("role"));
     }
 
     // ── 게시글 목록 조회 ──────────────────────────────────────────────────────
-    // GET /api/auth/board?category=ALL&search=&sort=latest&page=1&size=8
     @GetMapping
     public ResponseEntity<Map<String, Object>> getPosts(
         @RequestParam(defaultValue = "ALL")    String category,
@@ -66,11 +69,13 @@ public class BoardController {
     }
 
     // ── 게시글 상세 조회 ──────────────────────────────────────────────────────
+    // 로그인 유저의 좋아요 여부도 함께 반환 → { post: {...}, liked: bool }
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPost(@PathVariable Long id) {
-        BoardPost post = boardService.getPost(id);
-        if (post == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(post);
+    public ResponseEntity<?> getPost(@PathVariable Long id, HttpSession session) {
+        Long userId = getSessionUserId(session);
+        Map<String, Object> result = boardService.getPostWithLike(id, userId);
+        if (result.get("post") == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(result);
     }
 
     // ── 게시글 작성 ───────────────────────────────────────────────────────────
@@ -115,15 +120,15 @@ public class BoardController {
         }
     }
 
-    // ── 게시글 좋아요 ─────────────────────────────────────────────────────────
+    // ── 게시글 좋아요 토글 ────────────────────────────────────────────────────
+    // 첫 클릭: liked=true, likes+1 / 재클릭: liked=false, likes-1
+    // 응답: { liked: bool, likes: number, message: string }
     @PostMapping("/{id}/like")
-    public ResponseEntity<?> likePost(@PathVariable Long id,
-                                      @RequestParam(defaultValue = "true") boolean like,
-                                      HttpSession session) {
-        if (getSessionUserId(session) == null)
-            return ResponseEntity.status(401).body("로그인이 필요합니다.");
-        boardService.toggleLike(id, like);
-        return ResponseEntity.ok(like ? "추천하였습니다." : "추천을 취소하였습니다.");
+    public ResponseEntity<?> likePost(@PathVariable Long id, HttpSession session) {
+        Long userId = getSessionUserId(session);
+        if (userId == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        Map<String, Object> result = boardService.toggleLike(id, userId);
+        return ResponseEntity.ok(result);
     }
 
     // ── 댓글 목록 조회 ────────────────────────────────────────────────────────
@@ -162,12 +167,15 @@ public class BoardController {
         }
     }
 
-    // ── 댓글 좋아요 ───────────────────────────────────────────────────────────
+    // ── 댓글 좋아요 토글 ─────────────────────────────────────────────────────
+    // 첫 클릭: liked=true, likes+1 / 재클릭: liked=false, likes-1
+    // 응답: { liked: bool, likes: number, message: string }
     @PostMapping("/comments/{commentId}/like")
     public ResponseEntity<?> likeComment(@PathVariable Long commentId, HttpSession session) {
-        if (getSessionUserId(session) == null)
+        Long userId = getSessionUserId(session);
+        if (userId == null)
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
-        boardService.likeComment(commentId);
-        return ResponseEntity.ok("댓글을 추천하였습니다.");
+        Map<String, Object> result = boardService.toggleCommentLike(commentId, userId);
+        return ResponseEntity.ok(result);
     }
 }

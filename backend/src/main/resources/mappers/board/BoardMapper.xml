@@ -151,6 +151,24 @@
         UPDATE board_posts SET likes = GREATEST(0, likes - 1) WHERE id = #{id}
     </update>
 
+    <!-- 유저가 특정 게시글에 좋아요를 눌렀는지 확인 (1=눌렀음, 0=안 눌렀음) -->
+    <select id="checkUserLiked" resultType="int">
+        SELECT COUNT(*) FROM board_post_likes
+        WHERE user_id = #{userId} AND post_id = #{postId}
+    </select>
+
+    <!-- 좋아요 기록 INSERT (첫 클릭 시) -->
+    <insert id="insertUserLike">
+        INSERT IGNORE INTO board_post_likes (user_id, post_id)
+        VALUES (#{userId}, #{postId})
+    </insert>
+
+    <!-- 좋아요 기록 DELETE (재클릭 시 취소) -->
+    <delete id="deleteUserLike">
+        DELETE FROM board_post_likes
+        WHERE user_id = #{userId} AND post_id = #{postId}
+    </delete>
+
     <!-- 댓글 수 1 증가 -->
     <update id="incrementCommentCount">
         UPDATE board_posts SET comment_count = comment_count + 1 WHERE id = #{id}
@@ -197,5 +215,28 @@
     <update id="incrementCommentLikes">
         UPDATE board_comments SET likes = likes + 1 WHERE id = #{id}
     </update>
+
+    <!-- 댓글 좋아요 1 감소 (최솟값 0 보장) -->
+    <update id="decrementCommentLikes">
+        UPDATE board_comments SET likes = GREATEST(0, likes - 1) WHERE id = #{id}
+    </update>
+
+    <!-- 유저가 댓글에 좋아요를 눌렀는지 확인 (1=눌렀음, 0=안 눌렀음) -->
+    <select id="checkUserCommentLiked" resultType="int">
+        SELECT COUNT(*) FROM board_comment_likes
+        WHERE user_id = #{userId} AND comment_id = #{commentId}
+    </select>
+
+    <!-- 댓글 좋아요 기록 INSERT (첫 클릭) -->
+    <insert id="insertUserCommentLike">
+        INSERT IGNORE INTO board_comment_likes (user_id, comment_id)
+        VALUES (#{userId}, #{commentId})
+    </insert>
+
+    <!-- 댓글 좋아요 기록 DELETE (재클릭 시 취소) -->
+    <delete id="deleteUserCommentLike">
+        DELETE FROM board_comment_likes
+        WHERE user_id = #{userId} AND comment_id = #{commentId}
+    </delete>
 
 </mapper>

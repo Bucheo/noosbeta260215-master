@@ -1,4 +1,4 @@
-package com.noos.backend.auth.dto;
+package com.noos.backend.board.dto;
 
 import java.time.LocalDateTime;
 
