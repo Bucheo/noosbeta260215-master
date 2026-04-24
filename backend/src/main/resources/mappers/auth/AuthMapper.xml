@@ -27,7 +27,8 @@
         )
     </insert>
 
-    <!-- 비밀번호 검증에 사용할 로컬 계정 조회 -->
+    <!-- 로그인 ID(이메일)로 유저 조회 -->
+    <!-- provider 조건 제거: 로컬/소셜 구분 없이 이메일로 조회 가능 -->
     <select id="findLocalUserByLoginId" resultType="com.noos.backend.auth.dto.User">
         SELECT
             user_id AS userId,
@@ -41,7 +42,6 @@
             `role` AS role
         FROM users
         WHERE login_id = #{loginId}
-          AND provider = 'local'
     </select>
 
     <!-- 소셜 로그인 계정 저장 또는 업데이트 -->

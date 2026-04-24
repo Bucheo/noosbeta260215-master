@@ -160,3 +160,5 @@ UNLOCK TABLES;
 
 USE noos_db;
 SELECT user_id, login_id, display_name, provider FROM users;
+
+SELECT user_id, login_id, display_name FROM users WHERE login_id = 'atfqwe80@gmail.com';

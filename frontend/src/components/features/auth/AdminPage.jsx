@@ -545,8 +545,7 @@ const AdminPage = () => {
 
 
 // ── 관리자용 게시판 탭 컴포넌트 ──────────────────────────────────────────────
-// 백엔드 GET /api/auth/board 에서 전체 게시글을 가져와 표시
-// 관리자는 모든 게시글 삭제 가능
+// 카테고리 필터 + 작성자/작성일 검색 + 페이지네이션 지원
 const AdminBoardTab = () => {
   const [posts,    setPosts]    = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -554,29 +553,74 @@ const AdminBoardTab = () => {
   const [total,    setTotal]    = useState(0);
   const [pages,    setPages]    = useState(1);
 
-  const fetchPosts = (p = 1) => {
+  // ── 필터/검색 상태 ───────────────────────────────────────────────────────
+  const [category,     setCategory]     = useState("ALL"); // 카테고리 필터
+  const [searchInput,  setSearchInput]  = useState("");    // 작성자 검색 입력값
+  const [appliedSearch,setAppliedSearch]= useState("");    // 실제 적용된 검색어
+  const [startDate,    setStartDate]    = useState("");    // 작성일 시작
+  const [endDate,      setEndDate]      = useState("");    // 작성일 종료
+  const [appliedStart, setAppliedStart] = useState("");    // 적용된 시작일
+  const [appliedEnd,   setAppliedEnd]   = useState("");    // 적용된 종료일
+
+  const CATEGORY_LABELS = { ALL: "전체", NOTICE: "공지", FREE: "자유", QNA: "질문", INFO: "정보" };
+  const CATEGORY_COLORS = { NOTICE: "#ff9f43", FREE: "#54a0ff", QNA: "#a29bfe", INFO: "#00d2d3" };
+
+  // ── 게시글 목록 조회 (카테고리 + 검색 파라미터 포함) ─────────────────────
+  const fetchPosts = (p = 1, cat = category, search = appliedSearch) => {
     setLoading(true);
-    fetch(`http://localhost:8080/api/auth/board?page=${p}&size=10&sort=latest`, {
-      credentials: "include",
-    })
+    const params = new URLSearchParams({
+      page: p, size: 10, sort: "latest",
+      category: cat,
+      search: search, // 작성자 검색어
+    });
+    fetch(`http://localhost:8080/api/auth/board?${params}`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
-        setPosts(Array.isArray(data.posts) ? data.posts : []);
-        setTotal(data.total      ?? 0);
+        let result = Array.isArray(data.posts) ? data.posts : [];
+        // 작성일 범위 필터링 (프론트에서 처리)
+        if (appliedStart) {
+          result = result.filter((p) => p.createdAt && p.createdAt >= appliedStart);
+        }
+        if (appliedEnd) {
+          result = result.filter((p) => p.createdAt && p.createdAt <= appliedEnd + "T23:59:59");
+        }
+        setPosts(result);
+        setTotal(data.total   ?? 0);
         setPages(data.totalPages ?? 1);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchPosts(page); }, [page]);
+  // 카테고리/검색/날짜 변경 시 1페이지로 초기화
+  useEffect(() => { fetchPosts(1, category, appliedSearch); }, [category, appliedSearch, appliedStart, appliedEnd]);
+  useEffect(() => { fetchPosts(page, category, appliedSearch); }, [page]);
+
+  // 검색 실행
+  const handleSearch = () => {
+    setPage(1);
+    setAppliedSearch(searchInput.trim());
+    setAppliedStart(startDate);
+    setAppliedEnd(endDate);
+  };
+
+  // 검색 초기화
+  const handleReset = () => {
+    setSearchInput("");
+    setAppliedSearch("");
+    setStartDate("");
+    setEndDate("");
+    setAppliedStart("");
+    setAppliedEnd("");
+    setCategory("ALL");
+    setPage(1);
+  };
 
   // 게시글 삭제 (관리자 권한)
   const handleDelete = (postId, title) => {
     if (!window.confirm(`"${title}" 게시글을 삭제하시겠습니까?`)) return;
     fetch(`http://localhost:8080/api/auth/board/${postId}`, {
-      method: "DELETE",
-      credentials: "include",
+      method: "DELETE", credentials: "include",
     })
       .then((r) => {
         if (!r.ok) throw new Error("삭제 실패");
@@ -587,15 +631,106 @@ const AdminBoardTab = () => {
       .catch((e) => alert(e.message));
   };
 
-  const CATEGORY_LABELS = { NOTICE: "공지", FREE: "자유", QNA: "질문", INFO: "정보" };
-
   if (loading) return <div style={{ color: "#aaa", padding: "20px" }}>로딩 중...</div>;
 
   return (
     <div>
-      <h3 style={{ marginBottom: "16px", color: "#fff", fontSize: "16px" }}>
-        📋 게시글 목록 <span style={{ color: "#aaa", fontWeight: "normal" }}>({total}개)</span>
-      </h3>
+      {/* ── 헤더: 제목 + 게시판 바로가기 버튼 ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <h3 style={{ color: "#fff", fontSize: "16px", margin: 0 }}>
+          📋 게시글 목록 <span style={{ color: "#aaa", fontWeight: "normal" }}>({total}개)</span>
+        </h3>
+        <button
+          onClick={() => window.open("/api.auth/board", "_blank")}
+          style={{ display: "flex", alignItems: "center", gap: "6px",
+            padding: "8px 16px", borderRadius: "8px", cursor: "pointer",
+            background: "linear-gradient(135deg, #a3ceff, #5f8fff)",
+            border: "none", color: "#0a0a1a", fontSize: "13px", fontWeight: "700" }}
+        >
+          🔗 게시판 바로가기
+        </button>
+      </div>
+
+      {/* ── 카테고리 필터 탭 ── */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
+        {Object.entries(CATEGORY_LABELS).map(([id, label]) => (
+          <button key={id} onClick={() => { setCategory(id); setPage(1); }}
+            style={{
+              padding: "5px 14px", borderRadius: "20px", cursor: "pointer",
+              fontSize: "12px", fontWeight: "600", border: "none",
+              background: category === id
+                ? (id === "ALL" ? "#1976d2" : `${CATEGORY_COLORS[id] ?? "#1976d2"}`)
+                : "#2a2a2a",
+              color: category === id ? "#fff" : "#888",
+              transition: "all 0.2s",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 검색 바: 회원관리와 동일한 스타일 ── */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px",
+        alignItems: "center", flexWrap: "wrap" }}>
+
+        {/* 작성자 드롭다운 (고정 레이블) */}
+        <select
+          disabled
+          style={{ padding: "8px 12px", backgroundColor: "#333",
+            border: "1px solid #555", borderRadius: "4px",
+            color: "#fff", cursor: "default" }}
+        >
+          <option>작성자</option>
+        </select>
+
+        {/* 작성자 검색 입력 */}
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          placeholder="작성자 닉네임 입력..."
+          style={{ padding: "8px 12px", backgroundColor: "#333",
+            border: "1px solid #555", borderRadius: "4px",
+            color: "#fff", width: "200px" }}
+        />
+
+        {/* 작성일 범위 */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ color: "#aaa", fontSize: "13px" }}>생성일</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ padding: "7px", backgroundColor: "#333",
+              border: "1px solid #555", borderRadius: "4px",
+              color: "#fff", colorScheme: "dark" }}
+          />
+          <span style={{ color: "#aaa" }}>~</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ padding: "7px", backgroundColor: "#333",
+              border: "1px solid #555", borderRadius: "4px",
+              color: "#fff", colorScheme: "dark" }}
+          />
+        </div>
+
+        {/* 검색 버튼 */}
+        <button onClick={handleSearch}
+          style={{ padding: "8px 18px", backgroundColor: "#1976d2",
+            color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+          검색
+        </button>
+
+        {/* 초기화 버튼 */}
+        <button onClick={handleReset}
+          style={{ padding: "8px 18px", backgroundColor: "#555",
+            color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+          초기화
+        </button>
+      </div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
         <thead>
           <tr style={{ backgroundColor: "#333" }}>
