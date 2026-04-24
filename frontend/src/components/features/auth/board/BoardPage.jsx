@@ -390,8 +390,17 @@ const PostDetail = ({ post, onBack, onEdit, onDelete, currentUser, onRefresh }) 
 // ════════════════════════════════════════════════════════════════════════════════
 // PostForm (작성 / 수정)
 // ════════════════════════════════════════════════════════════════════════════════
-const PostForm = ({ initialData, onSubmit, onCancel }) => {
+const PostForm = ({ initialData, onSubmit, onCancel, isAdmin = false }) => {
   const isEdit = !!initialData;
+
+  // 관리자: 공지/자유/질문/정보 모두 가능
+  // 일반 유저: 자유/질문/정보만 가능
+  const WRITE_CATEGORIES = CATEGORIES.filter((c) =>
+    isAdmin
+      ? c.id !== "ALL"                          // 관리자: ALL 제외 전체
+      : c.id !== "ALL" && c.id !== "NOTICE"     // 일반 유저: ALL, 공지 제외
+  );
+
   const [form, setForm] = useState({
     category: initialData?.category ?? "FREE",
     title:    initialData?.title   ?? "",
@@ -437,7 +446,8 @@ const PostForm = ({ initialData, onSubmit, onCancel }) => {
         <div style={{ marginBottom: 20 }}>
           <label style={labelStyle}><Tag size={13} style={{ display: "inline", marginRight: 6 }} />카테고리</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {CATEGORIES.filter((c) => c.id !== "ALL").map((cat) => (
+            {/* 관리자: 공지 포함 전체 / 일반 유저: 자유·질문·정보만 표시 */}
+            {WRITE_CATEGORIES.map((cat) => (
               <button key={cat.id} onClick={() => setForm((p) => ({ ...p, category: cat.id }))}
                 style={{ padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
                   background: form.category === cat.id ? `${cat.color}20` : "rgba(255,255,255,.03)",
@@ -478,19 +488,23 @@ const PostForm = ({ initialData, onSubmit, onCancel }) => {
           </div>
         </div>
 
-        {/* 고정 옵션 */}
-        <div style={{ marginBottom: 28 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <div onClick={() => setForm((p) => ({ ...p, pinned: !p.pinned }))}
-              style={{ width: 18, height: 18, borderRadius: 4, cursor: "pointer", transition: "all .2s",
-                background: form.pinned ? "linear-gradient(135deg,#a3ceff,#5f8fff)" : "rgba(255,255,255,.08)",
-                border: form.pinned ? "none" : "1px solid rgba(255,255,255,.2)",
-                display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {form.pinned && <CheckCircle size={12} color="#0a0a1a" />}
-            </div>
-            <span style={{ fontSize: 13, color: "#aaaacc" }}>상단 고정 (공지)</span>
-          </label>
-        </div>
+        {/* 상단고정 옵션: 관리자만 표시 */}
+        {isAdmin && (
+          <div style={{ marginBottom: 28 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <div onClick={() => setForm((p) => ({ ...p, pinned: !p.pinned }))}
+                style={{ width: 18, height: 18, borderRadius: 4, cursor: "pointer", transition: "all .2s",
+                  background: form.pinned ? "linear-gradient(135deg,#ff9f43,#ff6b6b)" : "rgba(255,255,255,.08)",
+                  border: form.pinned ? "none" : "1px solid rgba(255,255,255,.2)",
+                  display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {form.pinned && <CheckCircle size={12} color="#0a0a1a" />}
+              </div>
+              <span style={{ fontSize: 13, color: "#ff9f43", fontWeight: 600 }}>
+                📌 상단 고정 (공지) — 관리자 전용
+              </span>
+            </label>
+          </div>
+        )}
 
         {/* 버튼 */}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -519,6 +533,7 @@ const BoardPage = () => {
   // ── 로그인 유저 상태 (세션에서 가져옴) ───────────────────────────────────
   const [currentUser, setCurrentUser] = useState(null); // displayName
   const [userId,      setUserId]      = useState(null);
+  const [userRole,    setUserRole]    = useState(null);  // "ADMIN" | "USER" | null
 
   // 페이지 진입 시 세션 확인 → /api/auth/me
   // 로그인 후 세션 쿠키가 존재하면 displayName / userId 를 받아와 상태에 저장
@@ -533,6 +548,7 @@ const BoardPage = () => {
           if (data && data.displayName) {
             setCurrentUser(data.displayName);
             setUserId(data.userId);
+            setUserRole(data.role); // "ADMIN" 또는 "USER"
           }
         } catch (_) {}
       })
@@ -837,7 +853,7 @@ const BoardPage = () => {
           {/* ── 작성 뷰 ──────────────────────────────────────────────────── */}
           {view === "write" && (
             <motion.div key="write">
-              <PostForm onSubmit={handleWriteSubmit} onCancel={() => setView("list")} />
+              <PostForm onSubmit={handleWriteSubmit} onCancel={() => setView("list")} isAdmin={userRole === "ADMIN"} />
             </motion.div>
           )}
 
@@ -846,7 +862,8 @@ const BoardPage = () => {
             <motion.div key="edit">
               <PostForm initialData={selectedPost}
                 onSubmit={handleEditSubmit}
-                onCancel={() => setView("detail")} />
+                onCancel={() => setView("detail")}
+                isAdmin={userRole === "ADMIN"} />
             </motion.div>
           )}
 

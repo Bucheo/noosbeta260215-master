@@ -70,28 +70,23 @@ public class SecurityConfig {
                     // 로그인한 유저의 이메일(loginId) 추출
                     String loginId = authentication.getName();
 
-                    // DB에서 유저 정보 조회
-                    User user = authMapper.findLocalUserByLoginId(loginId);
-
-                    // OAuth2 전용 조회 (provider = google/github)
-                    if (user == null) {
-                        // OAuth 계정은 loginId = email 로 저장되므로 재시도
-                        try {
-                            user = authMapper.findLocalUserByLoginId(loginId);
-                        } catch (Exception e) {
-                            System.out.println("[OAuth2] 유저 조회 실패: " + e.getMessage());
-                        }
-                    }
-
                     // 세션에 유저 정보 저장
+                    // ※ userId는 반드시 DB의 Long 타입 PK를 저장해야 함
+                    // loginId(이메일 문자열)를 저장하면 Long.parseLong() 시 500 에러 발생
                     HttpSession session = request.getSession(true);
-                    if (user != null) {
-                        session.setAttribute("userId",      user.getUserId());
-                        session.setAttribute("displayName", user.getDisplayName());
+
+                    // OAuth 유저는 loginId = email 로 DB에 저장됨
+                    // findLocalUserByLoginId로 email 기준 조회
+                    User latestUser = authMapper.findLocalUserByLoginId(loginId);
+
+                    if (latestUser != null) {
+                        session.setAttribute("userId",      latestUser.getUserId());      // Long PK
+                        session.setAttribute("displayName", latestUser.getDisplayName()); // 닉네임
                     } else {
-                        // DB 조회 실패 시 authentication에서 직접 추출
-                        session.setAttribute("userId",      loginId);
+                        // DB에 없으면 임시로 0 저장 (정상적으로는 saveOrUpdateOAuthUser 후 존재해야 함)
+                        session.setAttribute("userId",      0L);
                         session.setAttribute("displayName", loginId);
+                        System.out.println("[OAuth2] 경고: DB에서 유저를 찾을 수 없음 - " + loginId);
                     }
                     session.setAttribute("role", isAdmin ? "ADMIN" : "USER");
                     session.setMaxInactiveInterval(1800); // 30분

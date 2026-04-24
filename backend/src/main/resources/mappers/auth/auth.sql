@@ -157,3 +157,6 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-04-05 15:36:51
+
+USE noos_db;
+SELECT user_id, login_id, display_name, provider FROM users;
